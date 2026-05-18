@@ -1161,11 +1161,6 @@
         </profile>
         <profile>
             <id>openapi-generator</id>
-            <activation>
-                <property>
-                    <name>!integration-test</name>
-                </property>
-            </activation>
             <modules>
                 <module>modules/openapi-generator-core</module>
                 <module>modules/openapi-generator</module>

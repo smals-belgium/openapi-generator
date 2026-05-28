@@ -1636,12 +1636,11 @@ public class ModelUtils {
                     }
                 }
             }
-            if (parentNameCandidates.size() > 1) {
-                // unclear which one should be the parent
-                return null;
-            } else if (parentNameCandidates.size() == 1) {
+            if (!parentNameCandidates.isEmpty()) {
+                // use first ref as parent
                 return parentNameCandidates.get(0);
             }
+
             if (refedWithoutDiscriminator.size() == 1 && nullSchemaChildrenCount == 1) {
                 // One schema is a $ref and the other is the 'null' type, so the parent is obvious.
                 // In this particular case there is no need to specify a discriminator.

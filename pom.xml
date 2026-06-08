@@ -1185,6 +1185,13 @@
         </profile>
         <profile>
             <id>smals</id>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/smals-belgium/openapi-generator</url>
+                </repository>
+            </distributionManagement>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>

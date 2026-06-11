@@ -1,5 +1,9 @@
 # Maven CI build for the smals-belgium openapi-generator
 name: Maven build and publish snapshot
+
+env:
+  PR_NUMBER: ${{ github.event.number }}
+
 on:
   push:
     branches: [ master ]
@@ -18,10 +22,15 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
           cache: 'maven'
-      - uses: ./.github/actions/update-group-id
+      - name: update group id
+        uses: ./.github/actions/update-group-id
         with:
           old-group-id: org.openapitools
           new-group-id: io.github.smals-belgium
+      - name: update version
+        if: ${{ PR_NUMBER != null }}
+        run: echo "update version {{PR_NUMBER}}"
+
       - name: Build and publish with Maven
         run: mvn -B deploy
         env:

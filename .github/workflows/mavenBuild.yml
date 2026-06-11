@@ -26,7 +26,7 @@ jobs:
           new-group-id: io.github.smals-belgium
       - name: update version
         if: ${{ github.event.number != null }}
-        run: echo "update version {{github.event.number}}"
+        run: echo "update version ${{ github.event.number }}"
 
       - name: Build and publish with Maven
         run: mvn -B deploy

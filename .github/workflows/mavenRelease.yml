@@ -51,6 +51,7 @@ jobs:
             -DnewVersion="$VERSION" \
             -DgenerateBackupPoms=false \
             -DprocessAllModules=true
+
       - run: mvn -B deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

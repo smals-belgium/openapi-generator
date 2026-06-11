@@ -19,15 +19,15 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
           cache: 'maven'
-      - name: update group id
+      - name: Update group id
         uses: ./.github/actions/update-group-id
         with:
           old-group-id: org.openapitools
           new-group-id: io.github.smals-belgium
-      - name: update version
-        if: ${{ github.event.number != null }}
-        run: echo "update version ${{ github.event.number }}"
-
+      - name: Update Maven version
+        run: |
+          VERSION=${{ github.event_name == 'pull_request' && format('pr{0}-SNAPSHOT', github.event.pull_request.number) || 'latest-SNAPSHOT' }}
+          mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
       - name: Build and publish with Maven
         run: mvn -B deploy
         env:

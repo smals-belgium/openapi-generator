@@ -26,7 +26,7 @@
     <modules>
         <module>modules/openapi-generator-core</module>
         <module>modules/openapi-generator</module>
-        <module>modules/openapi-generator-cli</module>
+<!--        <module>modules/openapi-generator-cli</module>-->
         <module>modules/openapi-generator-maven-plugin</module>
         <!--                <module>modules/openapi-generator-gradle-plugin</module>-->
         <!--                <module>modules/openapi-generator-mill-plugin</module>-->
@@ -1198,11 +1198,6 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <modules>
-                <module>modules/openapi-generator-core</module>
-                <module>modules/openapi-generator</module>
-                <module>modules/openapi-generator-maven-plugin</module>
-            </modules>
         </profile>
     </profiles>
     <reporting>

@@ -25,14 +25,11 @@ runs:
         replace_group_id() {
           local file="$1"
           sed -i "s|<groupId>${OLD_GROUP_ID}</groupId>|<groupId>${NEW_GROUP_ID}</groupId>|g" "$file"
+          sed -i "s|<exclude>${OLD_GROUP_ID}:\*</exclude>|<exclude>${NEW_GROUP_ID}:*</exclude>|g"
         }
 
         if grep -q "<artifactId>openapi-generator-project</artifactId>" "$ROOT_POM"; then
           replace_group_id "$ROOT_POM"
-
-          sed -i \
-            "s|<exclude>${OLD_GROUP_ID}:\*</exclude>|<exclude>${NEW_GROUP_ID}:*</exclude>|g" \
-            "$ROOT_POM"
         fi
 
         for pom in "${MODULE_POMS[@]}"; do

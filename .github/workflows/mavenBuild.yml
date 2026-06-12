@@ -28,7 +28,7 @@ jobs:
           old-group-id: org.openapitools
           new-group-id: io.github.smals-belgium
 
-      - name: Update Maven version
+      - name: Update artifact version
         run: |
           VERSION=${{ github.event_name == 'pull_request' && format('pr{0}-SNAPSHOT', github.event.pull_request.number) || 'latest-SNAPSHOT' }}
           mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false

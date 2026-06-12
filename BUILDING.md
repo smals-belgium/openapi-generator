@@ -8,7 +8,7 @@ This project is built with maven.
 
 ## Building on GitHub
 
-Each push to GitHub triggers a new GitHub Actions build using the mavenBuild workflow.
+Every push to GitHub triggers a new build via the `mavenBuild` GitHub Actions workflow. The resulting snapshot version depends on the branch — master builds produce `latest-SNAPSHOT`, while pull request builds produce `pr[number]-SNAPSHOT`.
 
 ## Releasing
 

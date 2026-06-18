@@ -1,0 +1,26 @@
+openapi: 3.0.1
+info:
+  title: first
+  version: 0.0.1
+
+components:
+  schemas:
+    Parent:
+      type: object
+      properties:
+        ParentType:
+          type: string
+    ChildOne:
+      allOf:
+        - description: reference to internal parent schema
+          $ref: "#/components/schemas/Parent"
+        - $ref: "#/components/schemas/Type"
+    ChildTwo:
+      allOf:
+        - $ref: "someEnumObject.yaml#/components/schemas/SomeEnumObject"
+        - $ref: "#/components/schemas/Type"
+    Type:
+      type: object
+      properties:
+        typeProperty:
+          type: string

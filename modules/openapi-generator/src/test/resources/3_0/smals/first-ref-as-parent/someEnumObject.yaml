@@ -1,0 +1,15 @@
+openapi: 3.0.4
+info:
+  title: Reproducer for external parent reference bug
+  version: 1.0.0
+components:
+  schemas:
+    SomeEnumObject:
+      type: object
+      properties:
+        myFirstEnum:
+          type: string
+          enum:
+            - first
+            - second
+            - third

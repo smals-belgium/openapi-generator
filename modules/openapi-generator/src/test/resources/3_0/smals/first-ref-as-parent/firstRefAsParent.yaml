@@ -1,21 +1,22 @@
 openapi: 3.0.1
 info:
-  title: first
+  title: first ref as parent
   version: 0.0.1
-
 components:
   schemas:
     Parent:
       type: object
+      required:
+        - someParentProperty
       properties:
-        ParentType:
+        someParentProperty:
           type: string
-    ChildOne:
+    ChildInternalParentSchema:
       allOf:
         - description: reference to internal parent schema
           $ref: "#/components/schemas/Parent"
         - $ref: "#/components/schemas/Type"
-    ChildTwo:
+    ChildExternalParentSchema:
       allOf:
         - description: reference to external parent schema
           $ref: "parentSchema.yaml#/components/schemas/ExternalParent"
@@ -23,5 +24,5 @@ components:
     Type:
       type: object
       properties:
-        typeProperty:
+        someTypeProperty:
           type: string

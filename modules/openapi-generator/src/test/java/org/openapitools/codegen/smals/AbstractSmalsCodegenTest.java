@@ -19,6 +19,19 @@ import static org.openapitools.codegen.languages.SpringCodegen.SPRING_BOOT;
 import static org.openapitools.codegen.languages.SpringCodegen.SPRING_HTTP_INTERFACE;
 
 public class AbstractSmalsCodegenTest {
+    protected static Stream<Arguments> generators() {
+        return Stream.of(
+                Arguments.of(GeneratorName.SPRING, SPRING_HTTP_INTERFACE),
+                Arguments.of(GeneratorName.SPRING, SPRING_BOOT),
+                Arguments.of(GeneratorName.JAVA, "restclient"),
+                Arguments.of(GeneratorName.JAVA, "resteasy"),
+                Arguments.of(GeneratorName.JAVA, "resttemplate"),
+                Arguments.of(GeneratorName.JAVA, "webclient"),
+                Arguments.of(GeneratorName.JAXRS, null)
+        );
+    }
+
+
     /**
      * Generate the contract with additional configuration.
      * <p>
@@ -69,19 +82,6 @@ public class AbstractSmalsCodegenTest {
         GeneratorName(String type) {
             this.type = type;
         }
-
-    }
-
-    protected static Stream<Arguments> generatorConfigurations() {
-        return Stream.of(
-                Arguments.of(GeneratorName.SPRING, SPRING_HTTP_INTERFACE),
-                Arguments.of(GeneratorName.SPRING, SPRING_BOOT),
-                Arguments.of(GeneratorName.JAVA, "restclient"),
-                Arguments.of(GeneratorName.JAVA, "resteasy"),
-                Arguments.of(GeneratorName.JAVA, "resttemplate"),
-                Arguments.of(GeneratorName.JAVA, "webclient"),
-                Arguments.of(GeneratorName.JAXRS, null)
-        );
     }
 
 }

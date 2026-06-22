@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.*;
 
+import static org.openapitools.codegen.CodegenConstants.*;
 import static org.openapitools.codegen.utils.StringUtils.underscore;
 
 /**
@@ -243,6 +244,7 @@ public class PythonFastAPIServerCodegen extends AbstractPythonCodegen {
         OperationMap operations = objs.getOperations();
         // Set will make sure that no duplicated items are used.
         Set<String> securityImports = new HashSet<>();
+        boolean hasFileFormParam = false;
         if (operations != null) {
             List<CodegenOperation> ops = operations.getOperation();
             for (final CodegenOperation operation : ops) {
@@ -254,12 +256,62 @@ public class PythonFastAPIServerCodegen extends AbstractPythonCodegen {
                 }
 
                 setBodyParamExampleFromContent(operation);
+                if (overrideFileFormParamTyping(operation)) {
+                    hasFileFormParam = true;
+                }
             }
+        }
+
+        if (hasFileFormParam) {
+            addFastAPIUploadFileImport(objs);
         }
 
         objs.put("securityImports", new ArrayList<>(securityImports));
 
         return objs;
+    }
+
+    /**
+     * Overrides {@code x-py-typing} for binary multipart form parameters so that they
+     * are typed as FastAPI {@code UploadFile} instead of the client-side bytes/str union.
+     * FastAPI parses multipart {@code format: binary} fields into {@link UploadFile} instances;
+     * the default Pydantic-based union ({@code Union[StrictBytes, StrictStr, ...]}) rejects
+     * them with a 422 at request time.
+     *
+     * @param operation the operation whose parameters may need rewriting
+     * @return {@code true} if at least one parameter was rewritten
+     */
+    private boolean overrideFileFormParamTyping(CodegenOperation operation) {
+        boolean changed = false;
+        for (CodegenParameter param : operation.allParams) {
+            if (param.isFormParam && param.isFile) {
+                param.vendorExtensions.put(X_PY_TYPING, param.required ? "UploadFile" : "Optional[UploadFile]");
+                changed = true;
+            }
+        }
+        for (CodegenParameter param : operation.formParams) {
+            if (param.isFile) {
+                param.vendorExtensions.put(X_PY_TYPING, param.required ? "UploadFile" : "Optional[UploadFile]");
+            }
+        }
+        return changed;
+    }
+
+    private void addFastAPIUploadFileImport(OperationsMap objs) {
+        List<Map<String, String>> imports = objs.getImports();
+        if (imports == null) {
+            imports = new ArrayList<>();
+            objs.setImports(imports);
+        }
+        String importLine = "from fastapi import File, UploadFile";
+        for (Map<String, String> existing : imports) {
+            if (importLine.equals(existing.get("import"))) {
+                return;
+            }
+        }
+        Map<String, String> item = new HashMap<>();
+        item.put("import", importLine);
+        imports.add(item);
     }
 
     private void setBodyParamExampleFromContent(CodegenOperation operation) {
@@ -346,35 +398,35 @@ public class PythonFastAPIServerCodegen extends AbstractPythonCodegen {
     }
 
     private void clearBodyParamExample(CodegenOperation operation) {
-        operation.bodyParam.vendorExtensions.remove("x-py-example");
-        operation.bodyParam.vendorExtensions.remove("x-py-fastapi-example");
+        operation.bodyParam.vendorExtensions.remove(X_PY_EXAMPLE);
+        operation.bodyParam.vendorExtensions.remove(X_PY_FASTAPI_EXAMPLE);
         for (CodegenParameter param : operation.allParams) {
             if (param.isBodyParam || Objects.equals(param.paramName, operation.bodyParam.paramName)) {
-                param.vendorExtensions.remove("x-py-example");
-                param.vendorExtensions.remove("x-py-fastapi-example");
+                param.vendorExtensions.remove(X_PY_EXAMPLE);
+                param.vendorExtensions.remove(X_PY_FASTAPI_EXAMPLE);
             }
         }
         for (CodegenParameter param : operation.bodyParams) {
             if (param.isBodyParam || Objects.equals(param.paramName, operation.bodyParam.paramName)) {
-                param.vendorExtensions.remove("x-py-example");
-                param.vendorExtensions.remove("x-py-fastapi-example");
+                param.vendorExtensions.remove(X_PY_EXAMPLE);
+                param.vendorExtensions.remove(X_PY_FASTAPI_EXAMPLE);
             }
         }
     }
 
     private void setBodyParamExample(CodegenOperation operation, String example) {
-        operation.bodyParam.vendorExtensions.remove("x-py-example");
-        operation.bodyParam.vendorExtensions.put("x-py-fastapi-example", example);
+        operation.bodyParam.vendorExtensions.remove(X_PY_EXAMPLE);
+        operation.bodyParam.vendorExtensions.put(X_PY_FASTAPI_EXAMPLE, example);
         for (CodegenParameter param : operation.allParams) {
             if (param.isBodyParam || Objects.equals(param.paramName, operation.bodyParam.paramName)) {
-                param.vendorExtensions.remove("x-py-example");
-                param.vendorExtensions.put("x-py-fastapi-example", example);
+                param.vendorExtensions.remove(X_PY_EXAMPLE);
+                param.vendorExtensions.put(X_PY_FASTAPI_EXAMPLE, example);
             }
         }
         for (CodegenParameter param : operation.bodyParams) {
             if (param.isBodyParam || Objects.equals(param.paramName, operation.bodyParam.paramName)) {
-                param.vendorExtensions.remove("x-py-example");
-                param.vendorExtensions.put("x-py-fastapi-example", example);
+                param.vendorExtensions.remove(X_PY_EXAMPLE);
+                param.vendorExtensions.put(X_PY_FASTAPI_EXAMPLE, example);
             }
         }
     }

@@ -15,13 +15,13 @@ import org.springframework.lang.Nullable;
 import java.util.NoSuchElementException;
 import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import javax.validation.Valid;
+import javax.validation.constraints.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 
 import java.util.*;
-import jakarta.annotation.Generated;
+import javax.annotation.Generated;
 
 /**
  * AdditionalPropertiesClassDto
@@ -31,28 +31,20 @@ import jakarta.annotation.Generated;
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.23.0-SNAPSHOT")
 public class AdditionalPropertiesClassDto {
 
-  @Valid
   private Map<String, String> mapString = new HashMap<>();
 
-  @Valid
   private Map<String, BigDecimal> mapNumber = new HashMap<>();
 
-  @Valid
   private Map<String, Integer> mapInteger = new HashMap<>();
 
-  @Valid
   private Map<String, Boolean> mapBoolean = new HashMap<>();
 
-  @Valid
   private Map<String, List<Integer>> mapArrayInteger = new HashMap<>();
 
-  @Valid
   private Map<String, List<Object>> mapArrayAnytype = new HashMap<>();
 
-  @Valid
   private Map<String, Map<String, String>> mapMapString = new HashMap<>();
 
-  @Valid
   private Map<String, Map<String, Object>> mapMapAnytype = new HashMap<>();
 
   private @Nullable Object anytype1;

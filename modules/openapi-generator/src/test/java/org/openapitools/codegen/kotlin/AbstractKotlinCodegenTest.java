@@ -239,8 +239,23 @@ public class AbstractKotlinCodegenTest {
 
     @Test
     public void convertApiNameWithSuffix() {
-        codegen.setApiSuffix("Test");
+        codegen.setApiNameSuffix("Test");
         assertEquals(codegen.toApiName("Fake"), "FakeTest");
+        assertEquals(codegen.toApiName(""), "DefaultApi");
+    }
+
+    @Test
+    public void convertApiNameWithPrefix() {
+        codegen.setApiNamePrefix("Prefix");
+        assertEquals(codegen.toApiName("Fake"), "PrefixFakeApi");
+        assertEquals(codegen.toApiName(""), "DefaultApi");
+    }
+
+    @Test
+    public void convertApiNameWithPrefixAndSuffix() {
+        codegen.setApiNamePrefix("Prefix");
+        codegen.setApiNameSuffix("Suffix");
+        assertEquals(codegen.toApiName("Fake"), "PrefixFakeSuffix");
         assertEquals(codegen.toApiName(""), "DefaultApi");
     }
 
@@ -476,6 +491,30 @@ public class AbstractKotlinCodegenTest {
         Assert.assertEquals(nullableMap.getDataType(), "kotlin.collections.Map<kotlin.String, kotlin.String?>");
         Assert.assertEquals(notNullableMap.getDataType(), "kotlin.collections.Map<kotlin.String, kotlin.String>");
         Assert.assertEquals(defaultMap.getDataType(), "kotlin.collections.Map<kotlin.String, kotlin.String>");
+    }
+
+    @Test
+    public void schemaMappingWithNullableAllOfRendersNullableType() {
+        // When a schema is substituted via schemaMapping and a property wraps it with
+        // "nullable: true + allOf: [$ref]", the Kotlin property must be nullable (isNullable=true)
+        // and use the mapped FQN as its data type.
+        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/schema-mapping-nullable-allof.yaml");
+        codegen.schemaMapping().put("ExternalModel", "com.example.ExternalModel");
+        codegen.setOpenAPI(openAPI);
+
+        Schema myObjectSchema = openAPI.getComponents().getSchemas().get("MyObject");
+        CodegenModel cm = codegen.fromModel("MyObject", myObjectSchema);
+        codegen.postProcessModels(createCodegenModelWrapper(cm));
+
+        CodegenProperty optionalRef = cm.vars.stream()
+                .filter(v -> "optionalRef".equals(v.name))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("optionalRef property not found in MyObject"));
+
+        Assert.assertTrue(optionalRef.isNullable,
+                "optionalRef must be nullable because the schema uses nullable:true");
+        Assert.assertEquals(optionalRef.dataType, "com.example.ExternalModel",
+                "dataType must be the mapped FQN, not the raw schema name");
     }
 
     @Test

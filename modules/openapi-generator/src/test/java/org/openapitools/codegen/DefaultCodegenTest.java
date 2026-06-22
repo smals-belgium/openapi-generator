@@ -59,6 +59,8 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openapitools.codegen.CodegenConstants.X_ENUM_DESCRIPTIONS;
+import static org.openapitools.codegen.CodegenConstants.X_ENUM_VARNAMES;
 
 public class DefaultCodegenTest {
 
@@ -283,6 +285,46 @@ public class DefaultCodegenTest {
 
         assertEquals("1971-12-19T03:39:57-08:00", codegenParameter.defaultValue);
         Assertions.assertNull(codegenParameter.getSchema());
+    }
+
+    @Test
+    public void testOAS31ContentMediaTypeBinaryFormParameter() {
+        final OpenAPI openAPI = TestUtils.parseSpec("src/test/resources/3_1/binary-schema.yaml");
+        new OpenAPINormalizer(openAPI, Map.of("NORMALIZE_31SPEC", "true")).normalize();
+        new InlineModelResolver().flatten(openAPI);
+
+        final DefaultCodegen codegen = new DefaultCodegen();
+        codegen.setOpenAPI(openAPI);
+
+        RequestBody requestBody = openAPI.getPaths().get("/upload").getPost().getRequestBody();
+        List<CodegenParameter> formParams = codegen.fromRequestBodyToFormParameters(requestBody, new HashSet<>());
+        Map<String, CodegenParameter> paramsByBaseName = formParams.stream()
+                .collect(Collectors.toMap(param -> param.baseName, param -> param));
+
+        CodegenParameter file = paramsByBaseName.get("file");
+        assertTrue(file.isFormParam);
+        assertTrue(file.isBinary);
+        assertTrue(file.isFile);
+
+        CodegenParameter nullableFile = paramsByBaseName.get("nullableFile");
+        assertTrue(nullableFile.isFormParam);
+        assertTrue(nullableFile.isBinary);
+        assertTrue(nullableFile.isFile);
+
+        CodegenParameter encodedFile = paramsByBaseName.get("encodedFile");
+        assertTrue(encodedFile.isFormParam);
+        assertFalse(encodedFile.isBinary);
+        assertFalse(encodedFile.isFile);
+
+        CodegenParameter inferredFile = paramsByBaseName.get("inferredFile");
+        assertTrue(inferredFile.isFormParam);
+        assertTrue(inferredFile.isBinary);
+        assertTrue(inferredFile.isFile);
+
+        CodegenParameter image = paramsByBaseName.get("image");
+        assertTrue(image.isFormParam);
+        assertFalse(image.isBinary);
+        assertFalse(image.isFile);
     }
 
     @Test
@@ -2302,7 +2344,7 @@ public class DefaultCodegenTest {
         allowableValues.put("values", values);
         var.setAllowableValues(allowableValues);
         var.dataType = "String";
-        Map<String, Object> extensions = Collections.singletonMap("x-enum-varnames", aliases);
+        Map<String, Object> extensions = Collections.singletonMap(X_ENUM_VARNAMES, aliases);
         var.setVendorExtensions(extensions);
         return var;
     }
@@ -2327,8 +2369,8 @@ public class DefaultCodegenTest {
         final List<String> aliases = Arrays.asList("DOGVAR", "CATVAR");
         final List<String> descriptions = Arrays.asList("This is a dog", "This is a cat");
         Map<String, Object> extensions = new HashMap<>();
-        extensions.put("x-enum-varnames", aliases);
-        extensions.put("x-enum-descriptions", descriptions);
+        extensions.put(X_ENUM_VARNAMES, aliases);
+        extensions.put(X_ENUM_DESCRIPTIONS, descriptions);
         cm.setVendorExtensions(extensions);
         cm.setVars(Collections.emptyList());
         return TestUtils.createCodegenModelWrapper(cm);
@@ -2348,8 +2390,8 @@ public class DefaultCodegenTest {
         descriptions.put("dog", "This is a dog");
         descriptions.put("cat", "This is a cat");
         Map<String, Object> extensions = new HashMap<>();
-        extensions.put("x-enum-varnames", aliases);
-        extensions.put("x-enum-descriptions", descriptions);
+        extensions.put(X_ENUM_VARNAMES, aliases);
+        extensions.put(X_ENUM_DESCRIPTIONS, descriptions);
         cm.setVendorExtensions(extensions);
         cm.setVars(Collections.emptyList());
         return TestUtils.createCodegenModelWrapper(cm);
@@ -2432,6 +2474,32 @@ public class DefaultCodegenTest {
 
         assertEquals(1, codegenModel.vars.size());
         assertEquals("TypeAlias", codegenModel.vars.get(0).getBaseType());
+    }
+
+    @Test
+    public void schemaMappingWithNullableAllOfProperty() {
+        // When a property schema uses "nullable: true + allOf: [$ref]", DefaultCodegen must
+        // recognise the property as nullable and resolve its type to the referenced schema name.
+        // Language-specific codegens (Kotlin, Spring) then apply schemaMapping to produce the
+        // final mapped FQN — that is tested in the language-specific test suites.
+        DefaultCodegen codegen = new DefaultCodegen();
+        codegen.schemaMapping.put("ExternalModel", "foo.bar.ExternalModel");
+
+        OpenAPI openAPI = new OpenAPIParser()
+                .readLocation("src/test/resources/3_0/schema-mapping-nullable-allof.yaml", null, new ParseOptions()).getOpenAPI();
+        codegen.setOpenAPI(openAPI);
+
+        CodegenModel myObject = codegen.fromModel("MyObject", openAPI.getComponents().getSchemas().get("MyObject"));
+
+        CodegenProperty optionalRef = myObject.vars.stream()
+                .filter(v -> "optionalRef".equals(v.name))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("optionalRef property not found in MyObject"));
+
+        assertTrue(optionalRef.isNullable,
+                "optionalRef must be nullable because the schema uses nullable:true");
+        assertEquals("ExternalModel", optionalRef.dataType,
+                "dataType must resolve to the referenced schema name");
     }
 
     @Test

@@ -3,8 +3,11 @@ package org.openapitools.model
 import java.util.Objects
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonSetter
 import com.fasterxml.jackson.annotation.JsonValue
+import com.fasterxml.jackson.annotation.Nulls
 import org.openapitools.model.ReasonCode
+import org.openapitools.configuration.ValuedEnum
 import jakarta.validation.constraints.DecimalMax
 import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.Email
@@ -25,6 +28,7 @@ data class ApiError(
     @get:JsonProperty("errorCode", required = true) val errorCode: ApiError.ErrorCode,
 
     @field:Valid
+    @field:JsonSetter(nulls = Nulls.FAIL)
     @get:JsonProperty("reasonCode") val reasonCode: ReasonCode? = null
 ) {
 
@@ -32,7 +36,7 @@ data class ApiError(
     * 
     * Values: OK,ERROR
     */
-    enum class ErrorCode(@get:JsonValue val value: kotlin.Int) {
+    enum class ErrorCode(@get:JsonValue override val value: kotlin.Int) : ValuedEnum<kotlin.Int> {
 
         OK(0),
         ERROR(100);

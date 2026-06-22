@@ -7725,4 +7725,22 @@ public class SpringCodegenTest {
         JavaFileAssert.assertThat(files.get("BaseConfiguration.java"))
             .assertTypeAnnotations().containsWithName("JsonIgnoreProperties");
     }
+
+    @Test
+    void removeProblemJsonFromAccepts() throws IOException {
+        Map<String, File> files = generateFromContract("src/test/resources/3_0/spring/no-problem-json-in-response.yaml", SPRING_HTTP_INTERFACE,
+                Map.of(GENERATE_APIS, false, INTERFACE_ONLY, true, SKIP_OPERATION_EXAMPLE, true, SKIP_DEFAULT_INTERFACE, true));
+
+        JavaFileAssert.assertThat(files.get("DefaultApi.java"))
+                .fileDoesNotContain("application/problem+json");
+    }
+
+    @Test
+    void removeJsonProblemWhenSingleContentTypeIsDisabled() throws IOException {
+        Map<String, File> files = generateFromContract("src/test/resources/3_0/spring/no-problem-json-in-response.yaml", SPRING_BOOT,
+                Map.of(GENERATE_APIS, false, INTERFACE_ONLY, true, SINGLE_CONTENT_TYPES, true, SKIP_OPERATION_EXAMPLE, true, SKIP_DEFAULT_INTERFACE, true));
+
+        JavaFileAssert.assertThat(files.get("ImageApi.java"))
+                .fileDoesNotContain("application/problem+json");
+    }
 }

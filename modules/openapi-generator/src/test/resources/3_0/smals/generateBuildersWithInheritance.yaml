@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  title: first ref as parent
+  title: generated builders with inheritance
   version: 0.0.1
 components:
   schemas:
@@ -9,15 +9,10 @@ components:
       properties:
         someParentProperty:
           type: string
-    ChildInternalParentSchema:
+    Child:
       allOf:
         - description: reference to internal parent schema
           $ref: "#/components/schemas/Parent"
-        - $ref: "#/components/schemas/Type"
-    ChildExternalParentSchema:
-      allOf:
-        - description: reference to external parent schema
-          $ref: "parentSchema.yaml#/components/schemas/ExternalParent"
         - $ref: "#/components/schemas/Type"
     Type:
       type: object

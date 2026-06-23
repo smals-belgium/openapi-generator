@@ -1,0 +1,46 @@
+openapi: 3.0.4
+info:
+  title: Reproducer for accept-header problem
+  version: 1.0.0
+servers:
+  - url: /myApi/v1
+paths:
+  /image:
+    get:
+      operationId: getImage
+      responses:
+        '200':
+          description: getImage request
+          content:
+            image/png:
+              schema:
+                $ref: '#/components/schemas/Image'
+        '4XX':
+          description: Bad Request problem
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+components:
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        href:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+    Image:
+      type: string
+      format: binary

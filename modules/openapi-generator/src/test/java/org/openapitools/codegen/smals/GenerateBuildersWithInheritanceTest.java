@@ -1,40 +1,40 @@
 package org.openapitools.codegen.smals;
 
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.openapitools.codegen.java.assertions.JavaFileAssert;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+import static org.openapitools.codegen.smals.utils.SmalsCodegenUtils.Generator;
+import static org.openapitools.codegen.smals.utils.SmalsCodegenUtils.generateFromContract;
 
-public class GenerateBuildersWithInheritanceTest extends AbstractSmalsCodegenTest {
+// Added test because generating a builder with inheritance is not tested upstream
+public class GenerateBuildersWithInheritanceTest {
 
     @ParameterizedTest()
-    @MethodSource("generators")
-    public void generateBuildersWithInheritanceTest(GeneratorName generatorName, String library) throws IOException {
+    @EnumSource(Generator.class)
+    public void generateBuildersWithInheritanceTest(Generator generator) throws IOException {
 
         Map<String, File> files = generateFromContract(
                 "src/test/resources/3_0/smals/generateBuildersWithInheritance.yaml",
-                generatorName,
-                library,
+                generator,
                 Map.of("generateBuilders", "true"),
                 codegen -> codegen.addOpenapiNormalizer("REF_AS_PARENT_IN_ALLOF", "true"));
 
-        if (GeneratorName.SPRING.equals(generatorName) || GeneratorName.JAVA.equals(generatorName)) {
+        if ("spring".equals(generator.getGeneratorName()) || "java".equals(generator.getGeneratorName())) {
             JavaFileAssert.assertThat(files.get("Child.java"))
                     .extendsClass("Parent")
-                    .printFileContent()
                     .assertInnerClass("Builder")
                     .toFileAssert()
                     .fileContains("Builder extends Parent.Builder");
         }
 
-        if (GeneratorName.JAXRS.equals(generatorName)) {
+        if ("jaxrs-spec".equals(generator.getGeneratorName())) {
             JavaFileAssert.assertThat(files.get("Child.java"))
                     .extendsClass("Parent")
-                    .printFileContent()
                     .assertInnerClass("ChildBuilder")
                     .toFileAssert()
                     .fileContains("ChildBuilder<C extends Child, B extends ChildBuilder<C, B>> extends ParentBuilder<C, B>");

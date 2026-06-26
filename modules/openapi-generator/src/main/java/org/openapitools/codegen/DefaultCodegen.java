@@ -659,7 +659,16 @@ public class DefaultCodegen implements CodegenConfig {
         // Fix up all parent and interface CodegenModel references.
         for (CodegenModel cm : allModels.values()) {
             if (cm.getParent() != null) {
-                cm.setParentModel(allModels.get(cm.getParent()));
+                CodegenModel parentModel = allModels.get(cm.getParent());
+
+
+                // Fix reslove schema mapped parent
+                if (parentModel == null && schemaMapping.containsKey(cm.getParentSchema())) {
+                    Schema parentSchema = ModelUtils.getSchema(openAPI, cm.getParentSchema());
+                    parentModel = fromModel(cm.getParentSchema(), parentSchema);
+                }
+
+                cm.setParentModel(parentModel);
             }
             if (cm.getInterfaces() != null && !cm.getInterfaces().isEmpty()) {
                 cm.setInterfaceModels(new ArrayList<>(cm.getInterfaces().size()));

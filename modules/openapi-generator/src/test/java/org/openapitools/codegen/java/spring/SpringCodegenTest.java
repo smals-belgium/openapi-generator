@@ -8137,11 +8137,13 @@ public class SpringCodegenTest {
     @Test
     void removeProblemJsonFromXAcceptInSpringHttpInterfaceApi() throws IOException {
         Map<String, File> files = generateFromContract("src/test/resources/3_0/spring/no-problem-json-in-response.yaml", SPRING_HTTP_INTERFACE,
-                Map.of(GENERATE_APIS, false, INTERFACE_ONLY, true, SINGLE_CONTENT_TYPES, true, SKIP_OPERATION_EXAMPLE, true, SKIP_DEFAULT_INTERFACE, true));
+                Map.of(GENERATE_APIS, false, INTERFACE_ONLY, true, SKIP_OPERATION_EXAMPLE, true, SKIP_DEFAULT_INTERFACE, true));
 
         JavaFileAssert.assertThat(files.get("DefaultApi.java"))
-                .printFileContent()
-                .fileContains("accept = { \"image/png\" }");
+                .assertMethod("getImage")
+                .assertMethodAnnotations()
+                .containsWithNameAndAttributes("HttpExchange", Map.of( "accept", "{ \"image/png\" }"));
+
     }
 
     @Test
@@ -8150,23 +8152,28 @@ public class SpringCodegenTest {
                 Map.of(GENERATE_APIS, false, INTERFACE_ONLY, true, SKIP_OPERATION_EXAMPLE, true, SINGLE_CONTENT_TYPES, true, SKIP_DEFAULT_INTERFACE, true));
 
         JavaFileAssert.assertThat(files.get("ImageApi.java"))
-                .printFileContent()
-                .fileContains("produces = { \"image/png\" }");
+                .assertMethod("getImage")
+                .assertMethodAnnotations()
+                .containsWithNameAndAttributes("RequestMapping", Map.of( "produces", "{ \"image/png\" }"));
+
     }
 
     @Test
-    void retrieveApiResponseContentMediaTypeFromResponse() throws IOException {
+    void ApiResponseContentMediaTypeWithSingleContentTypesEnabled() throws IOException {
         Map<String, File> files = generateFromContract("src/test/resources/3_0/spring/no-problem-json-in-response.yaml", SPRING_BOOT,
                 Map.of(GENERATE_APIS, false, INTERFACE_ONLY, true, SINGLE_CONTENT_TYPES, true, SKIP_OPERATION_EXAMPLE, true, SKIP_DEFAULT_INTERFACE, true));
 
         JavaFileAssert.assertThat(files.get("ImageApi.java"))
                 .printFileContent()
-                .fileContains("@ApiResponse(responseCode = \"200\", description = \"getImage request\", content = {\n" +
-                              "                        @Content(mediaType = \"image/png\", schema = @Schema(implementation = org.springframework.core.io.Resource.class))\n" +
-                              "            })")
-                .fileContains("@ApiResponse(responseCode = \"4XX\", description = \"Bad Request problem\", content = {\n" +
-                              "                        @Content(mediaType = \"application/problem+json\", schema = @Schema(implementation = Problem.class))\n" +
-                              "            })");
+                .fileContains("responses = {\n" +
+                              "            @ApiResponse(responseCode = \"200\", description = \"getImage request\", content = {\n" +
+                              "                @Content(mediaType = \"image/png\", schema = @Schema(implementation = org.springframework.core.io.Resource.class))\n" +
+                              "            }),\n" +
+                              "            @ApiResponse(responseCode = \"4XX\", description = \"Bad Request problem\", content = {\n" +
+                              "                @Content(mediaType = \"image/png\", schema = @Schema(implementation = Problem.class))\n" +
+                              "            })\n" +
+                              "        }");
+
     }
 
 }

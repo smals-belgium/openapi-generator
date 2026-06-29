@@ -818,6 +818,7 @@ public class SpringCodegen extends AbstractJavaCodegen
         if (useJspecify) {
             applyJspecify();
         }
+
     }
 
     protected void applyJackson2Package() {
@@ -1374,6 +1375,10 @@ public class SpringCodegen extends AbstractJavaCodegen
                 LOGGER.info("substituteGenericPagedModel: operation '{}': replacing return type '{}' with {}<{}>",
                         codegenOperation.operationId, oldType, pagedModelClassName, itemType);
             }
+        }
+
+        if (singleContentTypes && codegenOperation.produces != null && !codegenOperation.produces.isEmpty()) {
+            codegenOperation.produces = List.of(codegenOperation.produces.get(0));
         }
 
         return codegenOperation;

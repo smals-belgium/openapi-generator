@@ -818,7 +818,6 @@ public class SpringCodegen extends AbstractJavaCodegen
         if (useJspecify) {
             applyJspecify();
         }
-
     }
 
     protected void applyJackson2Package() {

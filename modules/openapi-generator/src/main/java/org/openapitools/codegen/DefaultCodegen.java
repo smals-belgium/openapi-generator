@@ -7407,10 +7407,7 @@ public class DefaultCodegen implements CodegenConfig {
         for (String key : produces) {
             // escape quotation to avoid code injection, "*/*" is a special case, do nothing
             String encodedKey = "*/*".equals(key) ? key : escapeQuotationMark(key);
-            // remove "application/problem+json" from generated annotations as response media type
-            if ("application/problem+json".equals(encodedKey)){
-                continue;
-            }
+
             //Only unique media types should be added to "produces"
             if (!existingMediaTypes.contains(encodedKey)) {
                 Map<String, String> mediaType = new HashMap<>();

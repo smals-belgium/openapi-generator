@@ -1375,28 +1375,6 @@ public class SpringCodegen extends AbstractJavaCodegen
                         codegenOperation.operationId, oldType, pagedModelClassName, itemType);
             }
         }
-
-        if (singleContentTypes) {
-            // Only keep first produces entry
-            if (codegenOperation.produces != null && !codegenOperation.produces.isEmpty()) {
-                codegenOperation.produces = List.of(codegenOperation.produces.get(0));
-            }
-
-            // Only keep first response content type entry
-            for (CodegenResponse response : codegenOperation.responses) {
-                Map<String, CodegenMediaType> content = response.getContent();
-                if (content == null || content.isEmpty()) {
-                    continue;
-                }
-                Map.Entry<String, CodegenMediaType> contentType = content.entrySet().iterator().next();
-
-                LinkedHashMap<String, CodegenMediaType> firstContent = new LinkedHashMap<>();
-                firstContent.put(contentType.getKey(), contentType.getValue());
-
-                response.setContent(firstContent);
-            }
-        }
-
         return codegenOperation;
     }
 

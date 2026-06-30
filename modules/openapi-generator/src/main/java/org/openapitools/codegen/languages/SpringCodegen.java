@@ -1375,7 +1375,7 @@ public class SpringCodegen extends AbstractJavaCodegen
                         codegenOperation.operationId, oldType, pagedModelClassName, itemType);
             }
         }
-            
+
         return codegenOperation;
     }
 

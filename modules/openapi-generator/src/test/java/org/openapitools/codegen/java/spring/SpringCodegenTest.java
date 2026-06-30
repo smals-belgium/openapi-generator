@@ -8171,8 +8171,7 @@ public class SpringCodegenTest {
         Map<String, File> files = generateFromContract("src/test/resources/3_0/spring/no-problem-json-in-response.yaml", SPRING_BOOT,
                 Map.of(GENERATE_APIS, false, INTERFACE_ONLY, true, SKIP_OPERATION_EXAMPLE, true, SKIP_DEFAULT_INTERFACE, true));
 
-        JavaFileAssert.assertThat(files.get("ImageApi.java")).
-                printFileContent()
+        JavaFileAssert.assertThat(files.get("ImageApi.java")).printFileContent()
                 .fileContains("@ApiResponse(responseCode = \"200\", description = \"getImage request\", content = {\n" +
                               "                @Content(mediaType = \"image/png\", schema = @Schema(implementation = org.springframework.core.io.Resource.class))\n" +
                               "            })")

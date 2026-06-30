@@ -8170,7 +8170,7 @@ public class SpringCodegenTest {
                               "                @Content(mediaType = \"image/png\", schema = @Schema(implementation = org.springframework.core.io.Resource.class))\n" +
                               "            }),\n" +
                               "            @ApiResponse(responseCode = \"4XX\", description = \"Bad Request problem\", content = {\n" +
-                              "                @Content(mediaType = \"image/png\", schema = @Schema(implementation = Problem.class))\n" +
+                              "                @Content(mediaType = \"application/problem+json\", schema = @Schema(implementation = Problem.class))\n" +
                               "            })\n" +
                               "        }");
 

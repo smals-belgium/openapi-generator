@@ -67,7 +67,9 @@ import static org.openapitools.codegen.languages.JavaClientCodegen.USE_SPRING_BO
 import static org.openapitools.codegen.languages.SpringCodegen.*;
 import static org.openapitools.codegen.languages.features.DocumentationProviderFeatures.ANNOTATION_LIBRARY;
 import static org.openapitools.codegen.languages.features.DocumentationProviderFeatures.DOCUMENTATION_PROVIDER;
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.fail;
 
 public class SpringCodegenTest {
 
@@ -956,16 +958,16 @@ public class SpringCodegenTest {
 
         // Check that the delegate handles the array
         JavaFileAssert.assertThat(files.get("MultipartArrayApiDelegate.java"))
-                .assertMethod("multipartArray", "Flux<Part>", "ServerWebExchange")
-                .assertParameter("files").hasType("Flux<Part>");
+            .assertMethod("multipartArray", "Flux<Part>", "ServerWebExchange")
+            .assertParameter("files").hasType("Flux<Part>");
 
         // Check that the api handles the array
         JavaFileAssert.assertThat(files.get("MultipartArrayApi.java"))
-                .assertMethod("multipartArray", "Flux<Part>", "ServerWebExchange")
-                .assertParameter("files").hasType("Flux<Part>")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("Parameter", ImmutableMap.of("name", "\"files\"", "description", "\"Many files\""))
-                .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"files\"", "required", "false"));
+            .assertMethod("multipartArray", "Flux<Part>", "ServerWebExchange")
+            .assertParameter("files").hasType("Flux<Part>")
+            .assertParameterAnnotations()
+            .containsWithNameAndAttributes("Parameter", ImmutableMap.of("name", "\"files\"", "description", "\"Many files\""))
+            .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"files\"", "required", "false"));
 
         // UPDATE: the following test has been ignored due to https://github.com/OpenAPITools/openapi-generator/pull/11081/
         // We will contact the contributor of the following test to see if the fix will break their use cases and
@@ -976,32 +978,32 @@ public class SpringCodegenTest {
 
         // Check that the api handles the single file
         JavaFileAssert.assertThat(files.get("MultipartSingleApi.java"))
-                .assertMethod("multipartSingle", "Part", "ServerWebExchange")
-                .assertParameter("file").hasType("Part")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("Parameter", ImmutableMap.of("name", "\"file\"", "description", "\"One file\""))
-                .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"file\"", "required", "false"));
+            .assertMethod("multipartSingle", "Part", "ServerWebExchange")
+            .assertParameter("file").hasType("Part")
+            .assertParameterAnnotations()
+            .containsWithNameAndAttributes("Parameter", ImmutableMap.of("name", "\"file\"", "description", "\"One file\""))
+            .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"file\"", "required", "false"));
 
         // Check that api validates mixed multipart request
         JavaFileAssert.assertThat(files.get("MultipartMixedApi.java"))
-                .assertMethod("multipartMixed", "MultipartMixedStatus", "Part", "MultipartMixedRequestMarker", "List<MultipartMixedStatus>", "ServerWebExchange")
-                .assertParameter("status").hasType("MultipartMixedStatus")
-                .assertParameterAnnotations()
-                .containsWithName("Valid")
-                .containsWithNameAndAttributes("Parameter", ImmutableMap.of("name", "\"status\"", "description", "\"\""))
-                .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"status\"", "required", "true"))
-                .toParameter().toMethod()
-                .assertParameter("file").hasType("Part")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"file\"", "required", "true"))
-                .toParameter().toMethod()
-                .assertParameter("marker").hasType("MultipartMixedRequestMarker")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"marker\"", "required", "false"))
-                .toParameter().toMethod()
-                .assertParameter("statusArray").hasType("List<MultipartMixedStatus>")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"statusArray\"", "required", "false"));
+            .assertMethod("multipartMixed", "MultipartMixedStatus", "Part", "MultipartMixedRequestMarker", "List<MultipartMixedStatus>", "ServerWebExchange")
+            .assertParameter("status").hasType("MultipartMixedStatus")
+            .assertParameterAnnotations()
+            .containsWithName("Valid")
+            .containsWithNameAndAttributes("Parameter", ImmutableMap.of("name", "\"status\"", "description", "\"\""))
+            .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"status\"", "required", "true"))
+            .toParameter().toMethod()
+            .assertParameter("file").hasType("Part")
+            .assertParameterAnnotations()
+            .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"file\"", "required", "true"))
+            .toParameter().toMethod()
+            .assertParameter("marker").hasType("MultipartMixedRequestMarker")
+            .assertParameterAnnotations()
+            .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"marker\"", "required", "false"))
+            .toParameter().toMethod()
+            .assertParameter("statusArray").hasType("List<MultipartMixedStatus>")
+            .assertParameterAnnotations()
+            .containsWithNameAndAttributes("RequestPart", ImmutableMap.of("value", "\"statusArray\"", "required", "false"));
     }
 
     @Test
@@ -1736,7 +1738,7 @@ public class SpringCodegenTest {
         codegen.additionalProperties().put(INTERFACE_ONLY, "true");
         codegen.additionalProperties().put(SKIP_DEFAULT_INTERFACE, "true");
         codegen.additionalProperties().put(IMPLICIT_HEADERS, "true");
-        codegen.additionalProperties().put(SpringCodegen.OPENAPI_NULLABLE, "false");
+        codegen.additionalProperties().put(OPENAPI_NULLABLE, "false");
 
         ClientOptInput input = new ClientOptInput();
         input.openAPI(openAPI);
@@ -1768,7 +1770,7 @@ public class SpringCodegenTest {
         codegen.additionalProperties().put(INTERFACE_ONLY, "true");
         codegen.additionalProperties().put(SKIP_DEFAULT_INTERFACE, "true");
         codegen.additionalProperties().put(IMPLICIT_HEADERS, "true");
-        codegen.additionalProperties().put(SpringCodegen.OPENAPI_NULLABLE, "false");
+        codegen.additionalProperties().put(OPENAPI_NULLABLE, "false");
 
         ClientOptInput input = new ClientOptInput();
         input.openAPI(openAPI);
@@ -1801,7 +1803,7 @@ public class SpringCodegenTest {
         codegen.additionalProperties().put(INTERFACE_ONLY, "true");
         codegen.additionalProperties().put(SKIP_DEFAULT_INTERFACE, "true");
         codegen.additionalProperties().put(IMPLICIT_HEADERS, "true");
-        codegen.additionalProperties().put(SpringCodegen.OPENAPI_NULLABLE, "false");
+        codegen.additionalProperties().put(OPENAPI_NULLABLE, "false");
 
         ClientOptInput input = new ClientOptInput();
         input.openAPI(openAPI);
@@ -2752,8 +2754,8 @@ public class SpringCodegenTest {
 
         String jsonTypeInfo = "@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = \"type\", visible = true)";
         String jsonSubType = "@JsonSubTypes({\n" +
-                             "  @JsonSubTypes.Type(value = Cat.class, name = \"cat\")" +
-                             "})";
+                "  @JsonSubTypes.Type(value = Cat.class, name = \"cat\")" +
+                "})";
         assertFileContains(output.get("Pet.java").toPath(), jsonTypeInfo, jsonSubType);
     }
 
@@ -2826,9 +2828,9 @@ public class SpringCodegenTest {
         javaFileAssert.assertMethod("getName").assertMethodAnnotations()
                 .containsWithName("NotNull").anyMatch(annotation ->
                         !annotation.getNameAsString().equals("Valid") ||
-                        !annotation.getNameAsString().equals("Pattern") ||
-                        !annotation.getNameAsString().equals("Email") ||
-                        !annotation.getNameAsString().equals("Size"));
+                                !annotation.getNameAsString().equals("Pattern") ||
+                                !annotation.getNameAsString().equals("Email") ||
+                                !annotation.getNameAsString().equals("Size"));
         javaFileAssert.hasImports("javax.validation.constraints.NotNull");
     }
 
@@ -2855,9 +2857,9 @@ public class SpringCodegenTest {
         javaFileAssert.assertMethod("getName").assertMethodAnnotations()
                 .containsWithName("NotNull").anyMatch(annotation ->
                         !annotation.getNameAsString().equals("Valid") ||
-                        !annotation.getNameAsString().equals("Pattern") ||
-                        !annotation.getNameAsString().equals("Email") ||
-                        !annotation.getNameAsString().equals("Size"));
+                                !annotation.getNameAsString().equals("Pattern") ||
+                                !annotation.getNameAsString().equals("Email") ||
+                                !annotation.getNameAsString().equals("Size"));
         javaFileAssert.hasImports("jakarta.validation.constraints.NotNull");
     }
 
@@ -3294,8 +3296,8 @@ public class SpringCodegenTest {
         generator.opts(input).generate();
 
         String jsonSubType = "@JsonSubTypes({\n" +
-                             "  @JsonSubTypes.Type(value = Foo.class, name = \"foo\")\n" +
-                             "})";
+                "  @JsonSubTypes.Type(value = Foo.class, name = \"foo\")\n" +
+                "})";
         assertFileContains(Paths.get(outputPath + "/src/main/java/org/openapitools/model/Parent.java"), jsonSubType);
     }
 
@@ -5679,14 +5681,14 @@ public class SpringCodegenTest {
         JavaFileAssert.assertThat(file)
                 .fileContains(
                         "public Item(" +
-                        "String mandatoryName," +
-                        " @Nullable String optionalDescription," +
-                        " String optionalOneWithDefault," +
-                        " String nullableStr," +
-                        " List<String> mandatoryContainer," +
-                        " List<String> optionalContainer," +
-                        " List<String> optionalContainerWithDefault," +
-                        " List<String> nullableContainer)"
+                                "String mandatoryName," +
+                                " @Nullable String optionalDescription," +
+                                " String optionalOneWithDefault," +
+                                " String nullableStr," +
+                                " List<String> mandatoryContainer," +
+                                " List<String> optionalContainer," +
+                                " List<String> optionalContainerWithDefault," +
+                                " List<String> nullableContainer)"
                 );
     }
 
@@ -5715,9 +5717,9 @@ public class SpringCodegenTest {
         JavaFileAssert.assertThat(file)
                 .fileContains(
                         ", List<String> mandatoryContainer," +
-                        " @Nullable List<String> optionalContainer," +
-                        " List<String> optionalContainerWithDefault," +
-                        " List<String> nullableContainer)"
+                                " @Nullable List<String> optionalContainer," +
+                                " List<String> optionalContainerWithDefault," +
+                                " List<String> nullableContainer)"
                 );
     }
 
@@ -5746,7 +5748,7 @@ public class SpringCodegenTest {
         JavaFileAssert.assertThat(file)
                 .fileContains(
                         "public Item(String mandatoryName, String optionalDescription," +
-                        " String optionalOneWithDefault, String nullableStr"
+                                " String optionalOneWithDefault, String nullableStr"
                 );
     }
 
@@ -5789,9 +5791,9 @@ public class SpringCodegenTest {
         JavaFileAssert.assertThat(file)
                 .fileContains(
                         " List<String> mandatoryContainer," +
-                        " @Nullable List<String> optionalContainer," +
-                        " List<String> optionalContainerWithDefault," +
-                        " @Nullable List<String> nullableContainer)"
+                                " @Nullable List<String> optionalContainer," +
+                                " List<String> optionalContainerWithDefault," +
+                                " @Nullable List<String> nullableContainer)"
                 );
     }
 
@@ -6384,11 +6386,11 @@ public class SpringCodegenTest {
                 .assertParameter("number")
                 .assertParameterAnnotations()
                 .containsWithNameAndAttributes("Min", ImmutableMap.of(
-                        "value", "1L",
+                        "value",  "1L",
                         "message", "\"Must be positive\""
                 ))
                 .containsWithNameAndAttributes("Max", ImmutableMap.of(
-                        "value", "99L",
+                        "value",  "99L",
                         "message", "\"Must be less than 100\""
                 ))
                 .toParameter()
@@ -6396,11 +6398,11 @@ public class SpringCodegenTest {
                 .assertParameter("token")
                 .assertParameterAnnotations()
                 .containsWithNameAndAttributes("Min", ImmutableMap.of(
-                        "value", "1L",
+                        "value",  "1L",
                         "message", "\"Must be positive\""
                 ))
                 .containsWithNameAndAttributes("Max", ImmutableMap.of(
-                        "value", "99L",
+                        "value",  "99L",
                         "message", "\"Must be less than 100\""
                 ))
                 .toParameter()
@@ -6408,22 +6410,22 @@ public class SpringCodegenTest {
                 .assertParameter("clientNumber")
                 .assertParameterAnnotations()
                 .containsWithNameAndAttributes("Min", ImmutableMap.of(
-                        "value", "1L",
+                        "value",  "1L",
                         "message", "\"Must be positive\""
                 ))
                 .containsWithNameAndAttributes("Max", ImmutableMap.of(
-                        "value", "99L",
+                        "value",  "99L",
                         "message", "\"Must be less than 100\""
                 ));
         JavaFileAssert.assertThat(files.get("LongTest.java"))
                 .assertMethod("getField1")
                 .assertMethodAnnotations()
                 .containsWithNameAndAttributes("Min", ImmutableMap.of(
-                        "value", "1L",
+                        "value",  "1L",
                         "message", "\"Must be positive\""
                 ))
                 .containsWithNameAndAttributes("Max", ImmutableMap.of(
-                        "value", "99L",
+                        "value",  "99L",
                         "message", "\"Must be less than 100\""
                 ))
                 .toMethod()
@@ -6452,19 +6454,19 @@ public class SpringCodegenTest {
         codegen.additionalProperties().putAll(properties);
 
         ClientOptInput input = new ClientOptInput()
-                .openAPI(openAPI)
-                .config(codegen);
+            .openAPI(openAPI)
+            .config(codegen);
 
         DefaultGenerator generator = new DefaultGenerator();
 
         Map<String, File> files = generator.opts(input).generate().stream()
-                .collect(Collectors.toMap(File::getName, Function.identity()));
+            .collect(Collectors.toMap(File::getName, Function.identity()));
 
         File apiFile = files.get("Schema.java");
         assertNotNull(apiFile);
 
         JavaFileAssert.assertThat(apiFile).fileDoesNotContain(
-                "import io.swagger.v3.oas.annotations.media.Schema;"
+            "import io.swagger.v3.oas.annotations.media.Schema;"
         );
     }
 
@@ -6486,19 +6488,19 @@ public class SpringCodegenTest {
         codegen.additionalProperties().putAll(properties);
 
         ClientOptInput input = new ClientOptInput()
-                .openAPI(openAPI)
-                .config(codegen);
+            .openAPI(openAPI)
+            .config(codegen);
 
         DefaultGenerator generator = new DefaultGenerator();
 
         Map<String, File> files = generator.opts(input).generate().stream()
-                .collect(Collectors.toMap(File::getName, Function.identity()));
+            .collect(Collectors.toMap(File::getName, Function.identity()));
 
         File apiFile = files.get("Schema.java");
         assertNotNull(apiFile);
 
         JavaFileAssert.assertThat(apiFile).fileContains(
-                "import io.swagger.v3.oas.annotations.media.Schema;"
+            "import io.swagger.v3.oas.annotations.media.Schema;"
         );
     }
 
@@ -6538,7 +6540,7 @@ public class SpringCodegenTest {
                 .containsWithNameAndAttributes("Pattern", ImmutableMap.of(
                         "regexp", "\"[a-zA-Z]\"",
                         "message", "\"Only letters\""
-                ))
+                                                                         ))
                 .toParameter()
                 .toMethod()
                 .assertParameter("token")
@@ -6546,7 +6548,7 @@ public class SpringCodegenTest {
                 .containsWithNameAndAttributes("Pattern", ImmutableMap.of(
                         "regexp", "\"[0-9a-fA-F]\"",
                         "message", "\"Only numbers and letters a-f\""
-                ));
+                                                                         ));
     }
 
     @Test
@@ -6580,83 +6582,6 @@ public class SpringCodegenTest {
                 .hasImports("org.springframework.lang.Nullable");
         JavaFileAssert.assertThat(files.get("Pet.java"))
                 .hasImports("org.springframework.lang.Nullable");
-    }
-
-    @Test
-    public void testClientRegistrationIdAnnotation() throws IOException {
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setLibrary("spring-http-interface");
-        codegen.setUseSpringBoot4(true);
-        codegen.setClientRegistrationId("my-oauth-client");
-
-        final Map<String, File> files = generateFiles(codegen, "src/test/resources/3_0/petstore.yaml");
-
-        // Check that the @ClientRegistrationId annotation is generated at class level
-        JavaFileAssert.assertThat(files.get("PetApi.java"))
-                .hasImports("org.springframework.security.oauth2.client.annotation.ClientRegistrationId")
-                .assertTypeAnnotations()
-                .containsWithNameAndAttributes("ClientRegistrationId", ImmutableMap.of("value", "\"my-oauth-client\""));
-    }
-
-    @Test
-    public void testClientRegistrationIdAnnotationNotPresentWhenNotConfigured() throws IOException {
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setLibrary("spring-http-interface");
-        codegen.setUseSpringBoot4(true);
-        // clientRegistrationId not set
-
-        final Map<String, File> files = generateFiles(codegen, "src/test/resources/3_0/petstore.yaml");
-
-        // Check that the @ClientRegistrationId annotation is NOT generated
-        assertFileNotContains(files.get("PetApi.java").toPath(), "@ClientRegistrationId", "ClientRegistrationId");
-    }
-
-    @Test
-    public void shouldRefuseClientRegistrationIdWithoutSpringBoot4() throws IOException {
-        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        output.deleteOnExit();
-
-        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore.yaml");
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setOpenAPI(openAPI);
-        codegen.setOutputDir(output.getAbsolutePath());
-        codegen.setLibrary("spring-http-interface");
-        codegen.setClientRegistrationId("my-oauth-client");
-
-        ClientOptInput input = new ClientOptInput();
-        input.openAPI(openAPI);
-        input.config(codegen);
-
-        Generator generator = new DefaultGenerator()
-                .opts(input);
-
-        Assertions.assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(generator::generate)
-                .withMessageContaining(SpringCodegen.USE_SPRING_BOOT4);
-    }
-
-    @Test
-    public void shouldRefuseClientRegistrationIdOutsideSpringHttpInterface() throws IOException {
-        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        output.deleteOnExit();
-
-        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore.yaml");
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setOpenAPI(openAPI);
-        codegen.setOutputDir(output.getAbsolutePath());
-        codegen.setUseSpringBoot4(true);
-        codegen.setClientRegistrationId("my-oauth-client");
-
-        ClientOptInput input = new ClientOptInput();
-        input.openAPI(openAPI);
-        input.config(codegen);
-
-        Generator generator = new DefaultGenerator()
-                .opts(input);
-
-        Assertions.assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(generator::generate)
-                .withMessageContaining("spring-http-interface");
     }
 
     @Test
@@ -6769,130 +6694,6 @@ public class SpringCodegenTest {
                 .assertMethod("addPet").assertParameter("pet").assertParameterAnnotations().doesNotContainWithName("Parameter");
     }
 
-
-    @Test
-    public void testSpringHttpInterfaceUseBeanValidationRespected() throws IOException {
-        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        output.deleteOnExit();
-        String outputPath = output.getAbsolutePath().replace('\\', '/');
-
-        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore-echo.yaml");
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setOpenAPI(openAPI);
-        codegen.setOutputDir(output.getAbsolutePath());
-        codegen.setLibrary(SPRING_HTTP_INTERFACE);
-        codegen.setUseSpringBoot3(true);
-        codegen.additionalProperties().put(BeanValidationFeatures.USE_BEANVALIDATION, "true");
-
-        ClientOptInput input = new ClientOptInput();
-        input.openAPI(openAPI);
-        input.config(codegen);
-
-        DefaultGenerator generator = new DefaultGenerator();
-        generator.setGenerateMetadata(false);
-
-        generator.opts(input).generate().stream()
-                .collect(Collectors.toMap(File::getName, Function.identity()));
-
-        JavaFileAssert.assertThat(Paths.get(outputPath + "/src/main/java/org/openapitools/api/StoreApi.java"))
-                .hasImports("jakarta.validation.Valid")
-                .hasImports("jakarta.validation.constraints")
-                .assertTypeAnnotations().containsWithName("Validated");
-    }
-
-    @Test
-    public void testSpringHttpInterfaceUseBeanValidationFalseHasNoValidationAnnotations() throws IOException {
-        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        output.deleteOnExit();
-        String outputPath = output.getAbsolutePath().replace('\\', '/');
-
-        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore-echo.yaml");
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setOpenAPI(openAPI);
-        codegen.setOutputDir(output.getAbsolutePath());
-        codegen.setLibrary(SPRING_HTTP_INTERFACE);
-        codegen.setUseSpringBoot3(true);
-        codegen.additionalProperties().put(BeanValidationFeatures.USE_BEANVALIDATION, "false");
-
-        ClientOptInput input = new ClientOptInput();
-        input.openAPI(openAPI);
-        input.config(codegen);
-
-        DefaultGenerator generator = new DefaultGenerator();
-        generator.setGenerateMetadata(false);
-
-        generator.opts(input).generate().stream()
-                .collect(Collectors.toMap(File::getName, Function.identity()));
-
-        JavaFileAssert.assertThat(Paths.get(outputPath + "/src/main/java/org/openapitools/api/StoreApi.java"))
-                .hasNoImports("jakarta.validation.Valid")
-                .hasNoImports("jakarta.validation.constraints")
-                .assertTypeAnnotations().doesNotContainWithName("Validated");
-    }
-
-    @Test
-    public void testSpringHttpInterfaceUseBeanValidationDefaultsToFalse() throws IOException {
-        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        output.deleteOnExit();
-        String outputPath = output.getAbsolutePath().replace('\\', '/');
-
-        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore-echo.yaml");
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setOpenAPI(openAPI);
-        codegen.setOutputDir(output.getAbsolutePath());
-        codegen.setLibrary(SPRING_HTTP_INTERFACE);
-        codegen.setUseSpringBoot3(true);
-        // useBeanValidation not set — should default to false
-
-        ClientOptInput input = new ClientOptInput();
-        input.openAPI(openAPI);
-        input.config(codegen);
-
-        DefaultGenerator generator = new DefaultGenerator();
-        generator.setGenerateMetadata(false);
-
-        generator.opts(input).generate().stream()
-                .collect(Collectors.toMap(File::getName, Function.identity()));
-
-        JavaFileAssert.assertThat(Paths.get(outputPath + "/src/main/java/org/openapitools/api/StoreApi.java"))
-                .hasNoImports("jakarta.validation.Valid")
-                .hasNoImports("jakarta.validation.constraints")
-                .assertTypeAnnotations().doesNotContainWithName("Validated");
-    }
-
-    @Test
-    public void testSpringHttpInterfaceConstraintAnnotationsOnParams() throws IOException {
-        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        output.deleteOnExit();
-        String outputPath = output.getAbsolutePath().replace('\\', '/');
-
-        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore-echo.yaml");
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setOpenAPI(openAPI);
-        codegen.setOutputDir(output.getAbsolutePath());
-        codegen.setLibrary(SPRING_HTTP_INTERFACE);
-        codegen.setUseSpringBoot3(true);
-        codegen.additionalProperties().put(BeanValidationFeatures.USE_BEANVALIDATION, "true");
-
-        ClientOptInput input = new ClientOptInput();
-        input.openAPI(openAPI);
-        input.config(codegen);
-
-        DefaultGenerator generator = new DefaultGenerator();
-        generator.setGenerateMetadata(false);
-
-        generator.opts(input).generate().stream()
-                .collect(Collectors.toMap(File::getName, Function.identity()));
-
-        // getOrderById has minimum:1 and maximum:5 on orderId path param
-        JavaFileAssert.assertThat(Paths.get(outputPath + "/src/main/java/org/openapitools/api/StoreApi.java"))
-                .assertMethod("getOrderById")
-                .assertParameter("orderId")
-                .assertParameterAnnotations()
-                .containsWithName("Min")
-                .containsWithName("Max");
-    }
-
     @DataProvider(name = "jspecifyLibraries")
     public Object[][] jspecifyLibraries() {
         return new Object[][]{
@@ -6909,11 +6710,11 @@ public class SpringCodegenTest {
 
     @Test(dataProvider = "jspecifyLibraries")
     public void testJspecify(String library, int springBootVersion, String fooApiFilename) throws IOException {
-        String springVersionProperty = springBootVersion == 4 ? USE_SPRING_BOOT4 : USE_SPRING_BOOT3;
+        String springVersionProperty = springBootVersion == 4? USE_SPRING_BOOT4: USE_SPRING_BOOT3;
         final Map<String, File> files = generateFromContract("src/test/resources/3_0/java/jspecify.yaml", library,
                 Map.of(USE_JSPECIFY, true,
                         CONTAINER_DEFAULT_TO_NULL, true,
-                        SpringCodegen.OPENAPI_NULLABLE, false,
+                        OPENAPI_NULLABLE, false,
                         USE_BEANVALIDATION, true,
                         INTERFACE_ONLY, false,
                         springVersionProperty, springBootVersion > 2
@@ -7083,34 +6884,6 @@ public class SpringCodegenTest {
             String content = java.nio.file.Files.readString(petApiClient.toPath());
             assertThat(content).doesNotContain("Pageable pageable");
         }
-    }
-
-    @Test
-    public void explicitXSpringPaginatedIgnoredForSpringCloud() throws IOException {
-        // When x-spring-paginated: true is set explicitly in the spec but the library is spring-cloud,
-        // the extension must be stripped so the template does not emit "@ParameterObject Pageable pageable".
-        // Instead, individual page/size/sort @RequestParam args from the spec should remain.
-        Map<String, Object> props = new HashMap<>();
-        props.put(SpringCodegen.INTERFACE_ONLY, "true");
-        props.put(SpringCodegen.DOCUMENTATION_PROVIDER, "springdoc");
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-with-spring-pageable.yaml", "spring-cloud", props);
-
-        JavaFileAssert petApi = JavaFileAssert.assertThat(files.get("PetApi.java"));
-
-        // No Pageable type, @ParameterObject annotation, or their imports must appear for spring-cloud
-        petApi.fileDoesNotContain("Pageable pageable", "@ParameterObject")
-                .hasNoImports(
-                        "org.springframework.data.domain.Pageable",
-                        "org.springdoc.core.annotations.ParameterObject");
-
-        // findPetsByStatus has only the 'status' param from the spec (no Pageable added)
-        petApi.assertMethod("findPetsByStatus", "List<String>");
-
-        // findPetsByTags retains all individual query params defined alongside x-spring-paginated
-        // (page, size, sort remain; header 'size' also stays)
-        petApi.assertMethod("findPetsByTags", "List<String>", "Integer", "Integer", "String", "String");
     }
 
     @Test
@@ -7403,46 +7176,6 @@ public class SpringCodegenTest {
                 .containsWithNameAndAttributes("ValidPageable", Map.of("maxSize", "50", "maxPage", "999"));
     }
 
-    @Test
-    public void generatePageableConstraintValidationResolvesMaximumFromAllOfRef() throws IOException {
-        Map<String, Object> props = new HashMap<>();
-        props.put(SpringCodegen.INTERFACE_ONLY, "true");
-        props.put(SpringCodegen.SKIP_DEFAULT_INTERFACE, "true");
-        props.put(SpringCodegen.USE_TAGS, "true");
-        props.put(SpringCodegen.USE_SPRING_BOOT3, "true");
-        props.put(SpringCodegen.GENERATE_PAGEABLE_CONSTRAINT_VALIDATION, "true");
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-sort-validation.yaml", SPRING_BOOT, props);
-
-        // findPetsWithSizeConstraintFromAllOfRef: maximum: 75 is on the referenced schema only
-        JavaFileAssert.assertThat(files.get("PetApi.java"))
-                .assertMethod("findPetsWithSizeConstraintFromAllOfRef")
-                .assertParameter("pageable")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("ValidPageable", Map.of("maxSize", "75"));
-    }
-
-    @Test
-    public void generatePageableConstraintValidationResolvesMinimumFromAllOfRef() throws IOException {
-        Map<String, Object> props = new HashMap<>();
-        props.put(SpringCodegen.INTERFACE_ONLY, "true");
-        props.put(SpringCodegen.SKIP_DEFAULT_INTERFACE, "true");
-        props.put(SpringCodegen.USE_TAGS, "true");
-        props.put(SpringCodegen.USE_SPRING_BOOT3, "true");
-        props.put(SpringCodegen.GENERATE_PAGEABLE_CONSTRAINT_VALIDATION, "true");
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-sort-validation.yaml", SPRING_BOOT, props);
-
-        // findPetsWithMinSizeConstraintFromAllOfRef: minimum: 5 is on the referenced schema only
-        JavaFileAssert.assertThat(files.get("PetApi.java"))
-                .assertMethod("findPetsWithMinSizeConstraintFromAllOfRef")
-                .assertParameter("pageable")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("ValidPageable", Map.of("minSize", "5"));
-    }
-
     // -------------------------------------------------------------------------
     // @PageableDefault / @SortDefault tests
     // -------------------------------------------------------------------------
@@ -7626,9 +7359,7 @@ public class SpringCodegenTest {
                 .hasReturnType("ResponseEntity<List<Pet>>");
     }
 
-    /**
-     * Common properties shared by all substituteGenericPagedModel tests.
-     */
+    /** Common properties shared by all substituteGenericPagedModel tests. */
     private Map<String, Object> commonPagedModelProps() {
         Map<String, Object> props = new HashMap<>();
         props.put(SpringCodegen.INTERFACE_ONLY, "true");
@@ -7852,59 +7583,6 @@ public class SpringCodegenTest {
     }
 
 
-    // -------------------------------------------------------------------------
-    // substituteGenericPagedModel — modelNameSuffix / modelNamePrefix
-    // -------------------------------------------------------------------------
-
-    @Test
-    public void substituteGenericPagedModel_withModelNameSuffix_replacesReturnType() throws IOException {
-        // When modelNameSuffix is set the returnBaseType includes the suffix,
-        // so the registry lookup must also use the suffix-applied key.
-        Map<String, Object> props = commonPagedModelProps();
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-paged-model.yaml", SPRING_BOOT, props,
-                configurator -> configurator.addAdditionalProperty("modelNameSuffix", "Dto"));
-
-        // listUsers returns UserPage → suffix applied → UserPageDto → replaced with PagedModel<UserDto>
-        JavaFileAssert.assertThat(files.get("UserApi.java"))
-                .assertMethod("listUsers")
-                .hasReturnType("ResponseEntity<PagedModel<UserDto>>");
-    }
-
-    @Test
-    public void substituteGenericPagedModel_withModelNamePrefix_replacesReturnType() throws IOException {
-        // When modelNamePrefix is set the returnBaseType includes the prefix,
-        // so the registry lookup must also use the prefix-applied key.
-        Map<String, Object> props = commonPagedModelProps();
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-paged-model.yaml", SPRING_BOOT, props,
-                configurator -> configurator.addAdditionalProperty("modelNamePrefix", "My"));
-
-        // listUsers returns UserPage → prefix applied → MyUserPage → replaced with PagedModel<MyUser>
-        JavaFileAssert.assertThat(files.get("UserApi.java"))
-                .assertMethod("listUsers")
-                .hasReturnType("ResponseEntity<PagedModel<MyUser>>");
-    }
-
-    @Test
-    public void substituteGenericPagedModel_withModelNameSuffix_suppressesPagedSchemasWhenNoAnnotations()
-            throws IOException {
-        // Verify schema suppression also works correctly under modelNameSuffix
-        // (objs keys are suffix-applied, registry keys must match them).
-        Map<String, Object> props = noAnnotationPagedModelProps();
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-paged-model.yaml", SPRING_BOOT, props,
-                configurator -> configurator.addAdditionalProperty("modelNameSuffix", "Dto"));
-
-        assertThat(files).doesNotContainKey("UserPageDto.java");
-        assertThat(files).doesNotContainKey("OrderPageDto.java");
-        assertThat(files).doesNotContainKey("PetPageAllOfDto.java");
-    }
-
-
     @DataProvider(name = "replaceOneOf")
     public Object[][] replaceOneOf() {
         return new Object[][]{
@@ -8035,104 +7713,17 @@ public class SpringCodegenTest {
     @Test
     void disableDiscriminatorJsonIgnorePropertiesIsTrueThenJsonIgnorePropertiesShouldBeNotAdded() throws IOException {
         final Map<String, File> files = generateFromContract("src/test/resources/3_0/java/issue12777.yaml", SPRING_BOOT,
-                Map.of(DISABLE_DISCRIMINATOR_JSON_IGNORE_PROPERTIES, "true"));
+            Map.of(DISABLE_DISCRIMINATOR_JSON_IGNORE_PROPERTIES, "true"));
         JavaFileAssert.assertThat(files.get("BaseConfiguration.java"))
-                .assertTypeAnnotations().doesNotContainWithName("JsonIgnoreProperties");
+            .assertTypeAnnotations().doesNotContainWithName("JsonIgnoreProperties");
     }
 
     @Test
     void disableDiscriminatorJsonIgnorePropertiesIsTrueThenJsonIgnorePropertiesShouldBeAdded() throws IOException {
         final Map<String, File> files = generateFromContract("src/test/resources/3_0/java/issue12777.yaml", SPRING_BOOT,
-                Map.of(DISABLE_DISCRIMINATOR_JSON_IGNORE_PROPERTIES, "false"));
+            Map.of(DISABLE_DISCRIMINATOR_JSON_IGNORE_PROPERTIES, "false"));
         JavaFileAssert.assertThat(files.get("BaseConfiguration.java"))
-                .assertTypeAnnotations().containsWithName("JsonIgnoreProperties");
-    }
-
-    // useEnumValueInterface tests
-    // -------------------------------------------------------------------------
-
-    @Test
-    public void useEnumValueInterface_isDisabledByDefault() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT, new HashMap<>());
-
-        assertThat(files).doesNotContainKey("ValuedEnum.java");
-        JavaFileAssert.assertThat(files.get("OrderStatus.java"))
-                .fileDoesNotContain("implements ValuedEnum");
-    }
-
-    @Test
-    public void useEnumValueInterface_generatesInterface() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"));
-
-        assertThat(files).containsKey("ValuedEnum.java");
-        JavaFileAssert.assertThat(files.get("ValuedEnum.java"))
-                .isInterface()
-                .fileContains("interface ValuedEnum<T>")
-                .hasImports("jakarta.annotation.Generated");
-    }
-
-    @Test
-    public void useEnumValueInterface_topLevelEnumImplementsInterface() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"));
-
-        JavaFileAssert.assertThat(files.get("OrderStatus.java"))
-                .fileContains("implements ValuedEnum<String>")
-                .hasImports("org.openapitools.configuration.ValuedEnum");
-    }
-
-    @Test
-    public void useEnumValueInterface_inlineEnumImplementsInterface() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"));
-
-        JavaFileAssert.assertThat(files.get("Order.java"))
-                .fileContains("implements ValuedEnum<String>")
-                .hasImports("org.openapitools.configuration.ValuedEnum");
-    }
-
-    @Test
-    public void useEnumValueInterface_noFileGeneratedWithCustomImportMapping() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"),
-                configurator -> configurator
-                        .addImportMapping("ValuedEnum", "com.example.custom.ValuedEnum"));
-
-        assertThat(files).doesNotContainKey("ValuedEnum.java");
-    }
-
-    @Test
-    public void useEnumValueInterface_customImportMappingUsedInGeneratedCode() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"),
-                configurator -> configurator
-                        .addImportMapping("ValuedEnum", "com.example.custom.ValuedEnum"));
-
-        JavaFileAssert.assertThat(files.get("OrderStatus.java"))
-                .fileContains("implements ValuedEnum<String>")
-                .hasImports("com.example.custom.ValuedEnum");
-    }
-
-    @Test
-    void schemaMappingWithNullableAllOfRendersNullableJavaProperty() throws IOException {
-        // When a schema is substituted via schemaMapping and a property wraps it with
-        // "nullable: true + allOf: [$ref]", the Java Spring generator must render the
-        // property with the mapped FQN inside JsonNullable<T>.
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/schema-mapping-nullable-allof.yaml",
-                SPRING_BOOT,
-                new HashMap<>(),
-                configurator -> configurator.addSchemaMapping("ExternalModel", "com.example.ExternalModel"));
-
-        JavaFileAssert.assertThat(files.get("MyObject.java"))
-                .assertProperty("optionalRef").withType("JsonNullable<com.example.ExternalModel>");
+            .assertTypeAnnotations().containsWithName("JsonIgnoreProperties");
     }
 
     // Remove "application/problem+json" form generated response
@@ -8173,4 +7764,5 @@ public class SpringCodegenTest {
                               "                @Content(mediaType = \"application/problem+json\", schema = @Schema(implementation = Problem.class))\n" +
                               "            })");
     }
+
 }

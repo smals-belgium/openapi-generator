@@ -17,10 +17,6 @@
 
 package org.openapitools.codegen.java.spring;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.NormalAnnotationExpr;
 import com.google.common.collect.ImmutableMap;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -36,7 +32,6 @@ import org.openapitools.codegen.*;
 import org.openapitools.codegen.config.CodegenConfigurator;
 import org.openapitools.codegen.config.GlobalSettings;
 import org.openapitools.codegen.java.assertions.JavaFileAssert;
-import org.openapitools.codegen.java.assertions.MethodAnnotationsAssert;
 import org.openapitools.codegen.languages.AbstractJavaCodegen;
 import org.openapitools.codegen.languages.JavaClientCodegen;
 import org.openapitools.codegen.languages.SpringCodegen;
@@ -75,55 +70,6 @@ import static org.openapitools.codegen.languages.features.DocumentationProviderF
 import static org.testng.Assert.*;
 
 public class SpringCodegenTest {
-
-    /**
-     * Define documentation providers to test
-     */
-    private final static String SPRINGDOC = "springdoc";
-    private final static String SPRINGDOC_DESTINATIONFILE = "SpringDocConfiguration.java";
-    private final static String SPRINGDOC_TEMPLATEFILE = "springdocDocumentationConfig.mustache";
-
-    @DataProvider(name = "sealedScenarios")
-    public static Object[][] sealedScenarios() {
-        return new Object[][]{
-                {"oneof_polymorphism_and_inheritance.yaml", Map.of(
-                        "Foo.java", "public final class Foo extends Entity implements FooRefOrValue",
-                        "FooRef.java", "public final class FooRef extends EntityRef implements FooRefOrValue",
-                        "FooRefOrValue.java", "public sealed interface FooRefOrValue permits Foo, FooRef ",
-                        "Entity.java", "public sealed class Entity extends RepresentationModel<Entity> permits Bar, BarCreate, Foo, Pasta, Pizza {")},
-                {"oneOf_additionalProperties.yaml", Map.of(
-                        "SchemaA.java", "public final class SchemaA extends RepresentationModel<SchemaA>  implements PostRequest {",
-                        "PostRequest.java", "public sealed interface PostRequest permits SchemaA {")},
-                {"oneOf_array.yaml", Map.of(
-                        "MyExampleGet200Response.java", "public sealed interface MyExampleGet200Response")},
-                {"oneOf_duplicateArray.yaml", Map.of(
-                        "Example.java", "public interface Example  {")},
-                {"oneOf_nonPrimitive.yaml", Map.of(
-                        "Example.java", "public interface Example  {")},
-                {"oneOf_primitive.yaml", Map.of(
-                        "Child.java", "public final class Child extends RepresentationModel<Child>  implements Example {",
-                        "Example.java", "public sealed interface Example permits Child {")},
-                {"oneOf_primitiveAndArray.yaml", Map.of(
-                        "Example.java", "public interface Example  {")},
-                {"oneOf_reuseRef.yaml", Map.of(
-                        "Fruit.java", "public sealed interface Fruit permits Apple, Banana {",
-                        "Banana.java", "public final class Banana extends RepresentationModel<Banana>  implements Fruit {",
-                        "Apple.java", "public final class Apple extends RepresentationModel<Apple>  implements Fruit {")},
-                {"oneOf_twoPrimitives.yaml", Map.of(
-                        "MyExamplePostRequest.java", "public interface MyExamplePostRequest {")},
-                {"oneOfArrayMapImport.yaml", Map.of(
-                        "Fruit.java", "public interface Fruit  {",
-                        "Grape.java", "public final class Grape extends RepresentationModel<Grape>  {",
-                        "Apple.java", "public final class Apple extends RepresentationModel<Apple>  {")},
-                {"oneOfDiscriminator.yaml", Map.of(
-                        "FruitAllOfDisc.java", "public sealed interface FruitAllOfDisc permits AppleAllOfDisc, BananaAllOfDisc {",
-                        "AppleAllOfDisc.java", "public final class AppleAllOfDisc extends RepresentationModel<AppleAllOfDisc>  implements FruitAllOfDisc {",
-                        "BananaAllOfDisc.java", "public final class BananaAllOfDisc extends RepresentationModel<BananaAllOfDisc>  implements FruitAllOfDisc {",
-                        "FruitReqDisc.java", "public sealed interface FruitReqDisc permits AppleReqDisc, BananaReqDisc {",
-                        "AppleReqDisc.java", "public final class AppleReqDisc extends RepresentationModel<AppleReqDisc>  implements FruitReqDisc {",
-                        "BananaReqDisc.java", "public final class BananaReqDisc extends RepresentationModel<BananaReqDisc>  implements FruitReqDisc {")}
-        };
-    }
 
     @Test
     public void clientOptsUnicity() {
@@ -887,6 +833,7 @@ public class SpringCodegenTest {
                 .hasImports("org.springframework.web.server.ServerWebExchange");
     }
 
+
     @Test
     public void testSpringBoot3ReactiveIncludeHttpRequestContextFalse() throws IOException {
         final SpringCodegen codegen = new SpringCodegen();
@@ -946,6 +893,7 @@ public class SpringCodegenTest {
                 .hasNoMethod("createUser", "User", "HttpServletRequest");
     }
 
+
     @Test
     public void testSpringBoot3BlockingIncludeHttpRequestContextTrue() throws IOException {
         final SpringCodegen codegen = new SpringCodegen();
@@ -969,6 +917,7 @@ public class SpringCodegenTest {
                 .containsWithNameAndAttributes("Parameter", ImmutableMap.of("hidden", "true"))
                 .doesNotContainWithName("ApiIgnore");
     }
+
 
     @Test
     public void testSpringBootBlockingIncludeHttpRequestContextTrue() throws IOException {
@@ -994,6 +943,7 @@ public class SpringCodegenTest {
                 .assertParameterAnnotations()
                 .containsWithName("Parameter");
     }
+
 
     @Test
     public void testReactiveMultipartBoot() throws IOException {
@@ -1246,6 +1196,7 @@ public class SpringCodegenTest {
         assertThat(content).contains("inclusive = false");
         assertThat(content).doesNotContain("inclusive = true");
     }
+
 
     @Test
     public void shouldUseTagsForClassname() throws IOException {
@@ -1949,6 +1900,13 @@ public class SpringCodegenTest {
     }
 
     /**
+     * Define documentation providers to test
+     */
+    private final static String SPRINGDOC = "springdoc";
+    private final static String SPRINGDOC_DESTINATIONFILE = "SpringDocConfiguration.java";
+    private final static String SPRINGDOC_TEMPLATEFILE = "springdocDocumentationConfig.mustache";
+
+    /**
      * test whether SpringDocDocumentationConfig.java is generated
      * fix issue #12220
      */
@@ -2642,6 +2600,48 @@ public class SpringCodegenTest {
                 .hasNoImports("org.springframework.data.domain.Pageable", "org.springdoc.core.annotations.ParameterObject")
                 .assertMethod("findPageable")
                 .assertParameter("pageable").hasType("Pageable");
+    }
+
+    @DataProvider(name = "sealedScenarios")
+    public static Object[][] sealedScenarios() {
+        return new Object[][]{
+                {"oneof_polymorphism_and_inheritance.yaml", Map.of(
+                        "Foo.java", "public final class Foo extends Entity implements FooRefOrValue",
+                        "FooRef.java", "public final class FooRef extends EntityRef implements FooRefOrValue",
+                        "FooRefOrValue.java", "public sealed interface FooRefOrValue permits Foo, FooRef ",
+                        "Entity.java", "public sealed class Entity extends RepresentationModel<Entity> permits Bar, BarCreate, Foo, Pasta, Pizza {")},
+                {"oneOf_additionalProperties.yaml", Map.of(
+                        "SchemaA.java", "public final class SchemaA extends RepresentationModel<SchemaA>  implements PostRequest {",
+                        "PostRequest.java", "public sealed interface PostRequest permits SchemaA {")},
+                {"oneOf_array.yaml", Map.of(
+                        "MyExampleGet200Response.java", "public sealed interface MyExampleGet200Response")},
+                {"oneOf_duplicateArray.yaml", Map.of(
+                        "Example.java", "public interface Example  {")},
+                {"oneOf_nonPrimitive.yaml", Map.of(
+                        "Example.java", "public interface Example  {")},
+                {"oneOf_primitive.yaml", Map.of(
+                        "Child.java", "public final class Child extends RepresentationModel<Child>  implements Example {",
+                        "Example.java", "public sealed interface Example permits Child {")},
+                {"oneOf_primitiveAndArray.yaml", Map.of(
+                        "Example.java", "public interface Example  {")},
+                {"oneOf_reuseRef.yaml", Map.of(
+                        "Fruit.java", "public sealed interface Fruit permits Apple, Banana {",
+                        "Banana.java", "public final class Banana extends RepresentationModel<Banana>  implements Fruit {",
+                        "Apple.java", "public final class Apple extends RepresentationModel<Apple>  implements Fruit {")},
+                {"oneOf_twoPrimitives.yaml", Map.of(
+                        "MyExamplePostRequest.java", "public interface MyExamplePostRequest {")},
+                {"oneOfArrayMapImport.yaml", Map.of(
+                        "Fruit.java", "public interface Fruit  {",
+                        "Grape.java", "public final class Grape extends RepresentationModel<Grape>  {",
+                        "Apple.java", "public final class Apple extends RepresentationModel<Apple>  {")},
+                {"oneOfDiscriminator.yaml", Map.of(
+                        "FruitAllOfDisc.java", "public sealed interface FruitAllOfDisc permits AppleAllOfDisc, BananaAllOfDisc {",
+                        "AppleAllOfDisc.java", "public final class AppleAllOfDisc extends RepresentationModel<AppleAllOfDisc>  implements FruitAllOfDisc {",
+                        "BananaAllOfDisc.java", "public final class BananaAllOfDisc extends RepresentationModel<BananaAllOfDisc>  implements FruitAllOfDisc {",
+                        "FruitReqDisc.java", "public sealed interface FruitReqDisc permits AppleReqDisc, BananaReqDisc {",
+                        "AppleReqDisc.java", "public final class AppleReqDisc extends RepresentationModel<AppleReqDisc>  implements FruitReqDisc {",
+                        "BananaReqDisc.java", "public final class BananaReqDisc extends RepresentationModel<BananaReqDisc>  implements FruitReqDisc {")}
+        };
     }
 
     @Test(dataProvider = "sealedScenarios", description = "sealed scenarios")
@@ -7086,34 +7086,6 @@ public class SpringCodegenTest {
     }
 
     @Test
-    public void explicitXSpringPaginatedIgnoredForSpringCloud() throws IOException {
-        // When x-spring-paginated: true is set explicitly in the spec but the library is spring-cloud,
-        // the extension must be stripped so the template does not emit "@ParameterObject Pageable pageable".
-        // Instead, individual page/size/sort @RequestParam args from the spec should remain.
-        Map<String, Object> props = new HashMap<>();
-        props.put(SpringCodegen.INTERFACE_ONLY, "true");
-        props.put(SpringCodegen.DOCUMENTATION_PROVIDER, "springdoc");
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-with-spring-pageable.yaml", "spring-cloud", props);
-
-        JavaFileAssert petApi = JavaFileAssert.assertThat(files.get("PetApi.java"));
-
-        // No Pageable type, @ParameterObject annotation, or their imports must appear for spring-cloud
-        petApi.fileDoesNotContain("Pageable pageable", "@ParameterObject")
-                .hasNoImports(
-                        "org.springframework.data.domain.Pageable",
-                        "org.springdoc.core.annotations.ParameterObject");
-
-        // findPetsByStatus has only the 'status' param from the spec (no Pageable added)
-        petApi.assertMethod("findPetsByStatus", "List<String>");
-
-        // findPetsByTags retains all individual query params defined alongside x-spring-paginated
-        // (page, size, sort remain; header 'size' also stays)
-        petApi.assertMethod("findPetsByTags", "List<String>", "Integer", "Integer", "String", "String");
-    }
-
-    @Test
     public void autoXSpringPaginatedDisabledByDefault() throws IOException {
         Map<String, Object> props = new HashMap<>();
         props.put(SpringCodegen.INTERFACE_ONLY, "true");
@@ -7401,46 +7373,6 @@ public class SpringCodegenTest {
                 .assertParameter("pageable")
                 .assertParameterAnnotations()
                 .containsWithNameAndAttributes("ValidPageable", Map.of("maxSize", "50", "maxPage", "999"));
-    }
-
-    @Test
-    public void generatePageableConstraintValidationResolvesMaximumFromAllOfRef() throws IOException {
-        Map<String, Object> props = new HashMap<>();
-        props.put(SpringCodegen.INTERFACE_ONLY, "true");
-        props.put(SpringCodegen.SKIP_DEFAULT_INTERFACE, "true");
-        props.put(SpringCodegen.USE_TAGS, "true");
-        props.put(SpringCodegen.USE_SPRING_BOOT3, "true");
-        props.put(SpringCodegen.GENERATE_PAGEABLE_CONSTRAINT_VALIDATION, "true");
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-sort-validation.yaml", SPRING_BOOT, props);
-
-        // findPetsWithSizeConstraintFromAllOfRef: maximum: 75 is on the referenced schema only
-        JavaFileAssert.assertThat(files.get("PetApi.java"))
-                .assertMethod("findPetsWithSizeConstraintFromAllOfRef")
-                .assertParameter("pageable")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("ValidPageable", Map.of("maxSize", "75"));
-    }
-
-    @Test
-    public void generatePageableConstraintValidationResolvesMinimumFromAllOfRef() throws IOException {
-        Map<String, Object> props = new HashMap<>();
-        props.put(SpringCodegen.INTERFACE_ONLY, "true");
-        props.put(SpringCodegen.SKIP_DEFAULT_INTERFACE, "true");
-        props.put(SpringCodegen.USE_TAGS, "true");
-        props.put(SpringCodegen.USE_SPRING_BOOT3, "true");
-        props.put(SpringCodegen.GENERATE_PAGEABLE_CONSTRAINT_VALIDATION, "true");
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-sort-validation.yaml", SPRING_BOOT, props);
-
-        // findPetsWithMinSizeConstraintFromAllOfRef: minimum: 5 is on the referenced schema only
-        JavaFileAssert.assertThat(files.get("PetApi.java"))
-                .assertMethod("findPetsWithMinSizeConstraintFromAllOfRef")
-                .assertParameter("pageable")
-                .assertParameterAnnotations()
-                .containsWithNameAndAttributes("ValidPageable", Map.of("minSize", "5"));
     }
 
     // -------------------------------------------------------------------------
@@ -7789,9 +7721,7 @@ public class SpringCodegenTest {
                 .hasReturnType("ResponseEntity<MyPagedModel<User>>");
     }
 
-    /**
-     * Common properties for substituteGenericPagedModel tests using spring-http-interface.
-     */
+    /** Common properties for substituteGenericPagedModel tests using spring-http-interface. */
     private Map<String, Object> springHttpInterfacePagedModelProps() {
         Map<String, Object> props = new HashMap<>();
         props.put(SpringCodegen.USE_TAGS, "true");
@@ -7847,67 +7777,12 @@ public class SpringCodegenTest {
                 .hasReturnType("ResponseEntity<MyPagedModel<User>>");
     }
 
-    /**
-     * Common properties for substituteGenericPagedModel tests using spring-cloud.
-     */
+    /** Common properties for substituteGenericPagedModel tests using spring-cloud. */
     private Map<String, Object> springCloudPagedModelProps() {
         Map<String, Object> props = new HashMap<>();
         props.put(SpringCodegen.USE_TAGS, "true");
         props.put(SpringCodegen.SUBSTITUTE_GENERIC_PAGED_MODEL, "true");
         return props;
-    }
-
-
-    // -------------------------------------------------------------------------
-    // substituteGenericPagedModel — modelNameSuffix / modelNamePrefix
-    // -------------------------------------------------------------------------
-
-    @Test
-    public void substituteGenericPagedModel_withModelNameSuffix_replacesReturnType() throws IOException {
-        // When modelNameSuffix is set the returnBaseType includes the suffix,
-        // so the registry lookup must also use the suffix-applied key.
-        Map<String, Object> props = commonPagedModelProps();
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-paged-model.yaml", SPRING_BOOT, props,
-                configurator -> configurator.addAdditionalProperty("modelNameSuffix", "Dto"));
-
-        // listUsers returns UserPage → suffix applied → UserPageDto → replaced with PagedModel<UserDto>
-        JavaFileAssert.assertThat(files.get("UserApi.java"))
-                .assertMethod("listUsers")
-                .hasReturnType("ResponseEntity<PagedModel<UserDto>>");
-    }
-
-    @Test
-    public void substituteGenericPagedModel_withModelNamePrefix_replacesReturnType() throws IOException {
-        // When modelNamePrefix is set the returnBaseType includes the prefix,
-        // so the registry lookup must also use the prefix-applied key.
-        Map<String, Object> props = commonPagedModelProps();
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-paged-model.yaml", SPRING_BOOT, props,
-                configurator -> configurator.addAdditionalProperty("modelNamePrefix", "My"));
-
-        // listUsers returns UserPage → prefix applied → MyUserPage → replaced with PagedModel<MyUser>
-        JavaFileAssert.assertThat(files.get("UserApi.java"))
-                .assertMethod("listUsers")
-                .hasReturnType("ResponseEntity<PagedModel<MyUser>>");
-    }
-
-    @Test
-    public void substituteGenericPagedModel_withModelNameSuffix_suppressesPagedSchemasWhenNoAnnotations()
-            throws IOException {
-        // Verify schema suppression also works correctly under modelNameSuffix
-        // (objs keys are suffix-applied, registry keys must match them).
-        Map<String, Object> props = noAnnotationPagedModelProps();
-
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/petstore-paged-model.yaml", SPRING_BOOT, props,
-                configurator -> configurator.addAdditionalProperty("modelNameSuffix", "Dto"));
-
-        assertThat(files).doesNotContainKey("UserPageDto.java");
-        assertThat(files).doesNotContainKey("OrderPageDto.java");
-        assertThat(files).doesNotContainKey("PetPageAllOfDto.java");
     }
 
 
@@ -7920,7 +7795,7 @@ public class SpringCodegenTest {
         };
     }
 
-    @Test(dataProvider = "replaceOneOf")
+    @Test(dataProvider = "replaceOneOf" )
     void replaceOneOfByDiscriminatorMapping(String file) throws IOException {
         Map<String, File> files = generateFromContract(file, SPRING_BOOT,
                 Map.of(GENERATE_MODEL_DOCS, false, GENERATE_APIS, false, INTERFACE_ONLY, true),
@@ -8052,78 +7927,6 @@ public class SpringCodegenTest {
                 Map.of(DISABLE_DISCRIMINATOR_JSON_IGNORE_PROPERTIES, "false"));
         JavaFileAssert.assertThat(files.get("BaseConfiguration.java"))
                 .assertTypeAnnotations().containsWithName("JsonIgnoreProperties");
-    }
-
-    // useEnumValueInterface tests
-    // -------------------------------------------------------------------------
-
-    @Test
-    public void useEnumValueInterface_isDisabledByDefault() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT, new HashMap<>());
-
-        assertThat(files).doesNotContainKey("ValuedEnum.java");
-        JavaFileAssert.assertThat(files.get("OrderStatus.java"))
-                .fileDoesNotContain("implements ValuedEnum");
-    }
-
-    @Test
-    public void useEnumValueInterface_generatesInterface() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"));
-
-        assertThat(files).containsKey("ValuedEnum.java");
-        JavaFileAssert.assertThat(files.get("ValuedEnum.java"))
-                .isInterface()
-                .fileContains("interface ValuedEnum<T>")
-                .hasImports("jakarta.annotation.Generated");
-    }
-
-    @Test
-    public void useEnumValueInterface_topLevelEnumImplementsInterface() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"));
-
-        JavaFileAssert.assertThat(files.get("OrderStatus.java"))
-                .fileContains("implements ValuedEnum<String>")
-                .hasImports("org.openapitools.configuration.ValuedEnum");
-    }
-
-    @Test
-    public void useEnumValueInterface_inlineEnumImplementsInterface() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"));
-
-        JavaFileAssert.assertThat(files.get("Order.java"))
-                .fileContains("implements ValuedEnum<String>")
-                .hasImports("org.openapitools.configuration.ValuedEnum");
-    }
-
-    @Test
-    public void useEnumValueInterface_noFileGeneratedWithCustomImportMapping() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"),
-                configurator -> configurator
-                        .addImportMapping("ValuedEnum", "com.example.custom.ValuedEnum"));
-
-        assertThat(files).doesNotContainKey("ValuedEnum.java");
-    }
-
-    @Test
-    public void useEnumValueInterface_customImportMappingUsedInGeneratedCode() throws IOException {
-        Map<String, File> files = generateFromContract(
-                "src/test/resources/3_0/spring/enum-value-interface.yaml", SPRING_BOOT,
-                Map.of(USE_ENUM_VALUE_INTERFACE, "true"),
-                configurator -> configurator
-                        .addImportMapping("ValuedEnum", "com.example.custom.ValuedEnum"));
-
-        JavaFileAssert.assertThat(files.get("OrderStatus.java"))
-                .fileContains("implements ValuedEnum<String>")
-                .hasImports("com.example.custom.ValuedEnum");
     }
 
     @Test

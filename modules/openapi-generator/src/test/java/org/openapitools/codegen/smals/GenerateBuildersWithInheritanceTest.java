@@ -8,8 +8,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import static org.openapitools.codegen.smals.utils.SmalsCodegenUtils.Generator;
-import static org.openapitools.codegen.smals.utils.SmalsCodegenUtils.generateFromContract;
+import static org.openapitools.codegen.smals.utils.SmalsCodegenTestUtils.Generator;
+import static org.openapitools.codegen.smals.utils.SmalsCodegenTestUtils.generateFromContract;
 
 // Added test because generating a builder with inheritance is not tested upstream
 public class GenerateBuildersWithInheritanceTest {

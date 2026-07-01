@@ -4,6 +4,8 @@ import lombok.Getter;
 import org.openapitools.codegen.ClientOptInput;
 import org.openapitools.codegen.DefaultGenerator;
 import org.openapitools.codegen.config.CodegenConfigurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,13 +15,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class SmalsCodegenUtils {
+public class SmalsCodegenTestUtils {
 
+    public static final Logger LOGGER = LoggerFactory.getLogger(SmalsCodegenTestUtils.class);
     public static Map<String, File> generateFromContract(String url, Generator generator, Map<String, Object> additionalProperties,
                                                          Consumer<CodegenConfigurator> consumer) throws IOException {
 
         File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        System.out.println(output.getAbsolutePath());
+        LOGGER.info(output.getAbsolutePath());
         output.deleteOnExit();
 
         final CodegenConfigurator configurator = new CodegenConfigurator()
@@ -38,7 +41,7 @@ public class SmalsCodegenUtils {
         defaultGenerator.setGenerateMetadata(false);
 
         return defaultGenerator.opts(input).generate().stream()
-                .collect(Collectors.toMap(SmalsCodegenUtils::getUniqueName, Function.identity()));
+                .collect(Collectors.toMap(SmalsCodegenTestUtils::getUniqueName, Function.identity()));
     }
 
     private static String getUniqueName(File file) {

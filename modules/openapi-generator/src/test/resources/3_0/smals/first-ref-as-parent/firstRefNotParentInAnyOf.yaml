@@ -1,0 +1,24 @@
+openapi: 3.0.1
+info:
+  title: first ref as parent
+  version: 0.0.1
+components:
+  schemas:
+    ShouldNotBeAChild:
+      anyOf:
+        - $ref: "#/components/schemas/Type"
+        - $ref: "#/components/schemas/OtherType"
+    Type:
+      type: object
+      properties:
+        TypeName:
+          type: string
+        someTypeProperty:
+          type: string
+    OtherType:
+      type: object
+      properties:
+        otherTypeName:
+          type: string
+        someTypeProperty:
+          type: string

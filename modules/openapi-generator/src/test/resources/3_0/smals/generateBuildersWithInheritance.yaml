@@ -1,0 +1,21 @@
+openapi: 3.0.1
+info:
+  title: generated builders with inheritance
+  version: 0.0.1
+components:
+  schemas:
+    Parent:
+      type: object
+      properties:
+        someParentProperty:
+          type: string
+    Child:
+      allOf:
+        - description: reference to internal parent schema
+          $ref: "#/components/schemas/Parent"
+        - $ref: "#/components/schemas/Type"
+    Type:
+      type: object
+      properties:
+        someTypeProperty:
+          type: string

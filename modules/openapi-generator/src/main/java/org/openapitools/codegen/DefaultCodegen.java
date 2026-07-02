@@ -661,8 +661,7 @@ public class DefaultCodegen implements CodegenConfig {
             if (cm.getParent() != null) {
                 CodegenModel parentModel = allModels.get(cm.getParent());
 
-
-                // Fix reslove schema mapped parent
+                // Resolve the parent model when the parent schema is externally mapped.
                 if (parentModel == null && schemaMapping.containsKey(cm.getParentSchema())) {
                     Schema parentSchema = ModelUtils.getSchema(openAPI, cm.getParentSchema());
                     parentModel = fromModel(cm.getParentSchema(), parentSchema);

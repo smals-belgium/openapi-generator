@@ -5227,7 +5227,7 @@ public class DefaultCodegenTest {
     }
 
     @Test
-    void shouldResolveParentModelFromSchemaMapping() {
+    void testResolveParentModelFromSchemaMappedParent() {
         OpenAPI openAPI = new OpenAPI();
         Components components = new Components();
         components.addSchemas("Parent", new ObjectSchema());

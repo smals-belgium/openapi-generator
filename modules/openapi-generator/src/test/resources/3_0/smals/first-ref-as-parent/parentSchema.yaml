@@ -1,0 +1,11 @@
+openapi: 3.0.1
+info:
+  title: external parent schema
+  version: 0.0.1
+components:
+  schemas:
+    ExternalParent:
+      type: object
+      properties:
+        someParentProperty:
+          type: string

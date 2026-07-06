@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  description: "This is a testcase for generating a LinkedHashSet for an uniqueItems Array"
+  version: "1.0"
+  title: TestCase
+tags:
+  - name: MyObjects
+paths:
+  /myObjects:
+    get:
+      tags:
+          - MyObjects
+      responses:
+        200:
+          description: Very good response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnotherCollection'
+components:
+  schemas:
+    MyCollection:
+      type: object
+      properties:
+        objects:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyObject'
+          uniqueItems: true
+      required:
+        - objects
+    MyObject:
+      type: object
+      properties:
+        name:
+          type: string
+    AnotherCollection:
+      type: array
+      minItems: 2
+      uniqueItems: true
+      items:
+        $ref: '#/components/schemas/MyObject'
+    MyCollectionsCollection:
+      type: object
+      properties:
+        collection:
+          type: array
+          uniqueItems: true
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/AnotherCollection'

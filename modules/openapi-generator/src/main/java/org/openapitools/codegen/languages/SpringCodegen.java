@@ -627,6 +627,7 @@ public class SpringCodegen extends AbstractJavaCodegen
         importMapping.put("JsonDeserialize", (useJackson3 ? JACKSON3_PACKAGE : JACKSON2_PACKAGE) + ".databind.annotation.JsonDeserialize");
 
         typeMapping.put("file", "org.springframework.core.io.Resource");
+        typeMapping.put("set", "LinkedHashSet");
         importMapping.put("Nullable", useJspecify? "org.jspecify.annotations.Nullable": "org.springframework.lang.Nullable");
         importMapping.put("org.springframework.core.io.Resource", "org.springframework.core.io.Resource");
         importMapping.put("DateTimeFormat", "org.springframework.format.annotation.DateTimeFormat");
@@ -1081,6 +1082,13 @@ public class SpringCodegen extends AbstractJavaCodegen
                 dataTypeAssigner.setReturnType(rt.substring(start + 1, end).trim());
                 dataTypeAssigner.setReturnContainer("Set");
             }
+        } else if (rt.startsWith("LinkedHashSet") || rt.startsWith("java.util.LinkedHashSet")) {
+            final int start = rt.indexOf("<");
+            final int end = rt.lastIndexOf(">");
+            if (start > 0 && end > 0) {
+                dataTypeAssigner.setReturnType(rt.substring(start + 1, end).trim());
+                dataTypeAssigner.setReturnContainer("LinkedHashSet");
+            }
         }
     }
 
@@ -1199,6 +1207,11 @@ public class SpringCodegen extends AbstractJavaCodegen
 
         if (model.getVendorExtensions().containsKey("x-jackson-optional-nullable-helpers")) {
             model.imports.add("Arrays");
+        }
+
+        if ("set".equals(property.containerType)) {
+            model.imports.remove("JsonDeserialize");
+            property.vendorExtensions.remove("x-setter-extra-annotation", "@JsonDeserialize(as = LinkedHashSet.class)");
         }
     }
 

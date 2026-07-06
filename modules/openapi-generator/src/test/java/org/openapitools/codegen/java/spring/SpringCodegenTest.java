@@ -1292,19 +1292,20 @@ public class SpringCodegenTest {
                 .collect(Collectors.toMap(File::getName, Function.identity()));
 
         JavaFileAssert.assertThat(files.get("ResponseTest.java"))
+                .printFileContent()
                 .isNormalClass()
                 .hasImports("javax.validation.Valid")
                 .assertProperty("details")
                 .withType("Map<String, Object>")
                 .toType()
                 .assertProperty("response")
-                .withType("JsonNullable<Set<@Valid ResponseTest2>>")
+                .withType("JsonNullable<LinkedHashSet<@Valid ResponseTest2>>")
                 .toType()
                 .assertProperty("nullableDtos")
-                .withType("JsonNullable<Set<@Valid ResponseTest2>>")
+                .withType("JsonNullable<LinkedHashSet<@Valid ResponseTest2>>")
                 .toType()
                 .assertProperty("dtos")
-                .withType("Set<@Valid ResponseTest2>")
+                .withType("LinkedHashSet<@Valid ResponseTest2>")
                 .toType()
                 .assertProperty("listNullableDtos")
                 .withType("JsonNullable<List<@Valid ResponseTest2>>")
@@ -1313,16 +1314,16 @@ public class SpringCodegenTest {
                 .withType("List<@Valid ResponseTest2>")
                 .toType()
                 .assertProperty("nullableStrings")
-                .withType("JsonNullable<Set<String>>")
+                .withType("JsonNullable<LinkedHashSet<String>>")
                 .toType()
                 .assertProperty("strings")
-                .withType("Set<String>")
+                .withType("LinkedHashSet<String>")
                 .toType()
                 .assertProperty("nullableInts")
-                .withType("JsonNullable<Set<Integer>>")
+                .withType("JsonNullable<LinkedHashSet<Integer>>")
                 .toType()
                 .assertProperty("ints")
-                .withType("Set<Integer>");
+                .withType("LinkedHashSet<Integer>");
     }
 
     @Test
@@ -1356,16 +1357,16 @@ public class SpringCodegenTest {
                 .hasImports("jakarta.validation.Valid")
                 .hasImports("jakarta.validation.constraints")
                 .assertProperty("stringPattern")
-                .withType("Set<@Pattern(regexp = \"[a-z]\") String>")
+                .withType("LinkedHashSet<@Pattern(regexp = \"[a-z]\") String>")
                 .toType()
                 .assertProperty("stringMaxMinLength")
-                .withType("Set<@Size(min = 1, max = 10) String>")
+                .withType("LinkedHashSet<@Size(min = 1, max = 10) String>")
                 .toType()
                 .assertProperty("stringMinLength")
                 .withType("List<@Size(min = 1) String>")
                 .toType()
                 .assertProperty("stringMaxLength")
-                .withType("Set<@Size(max = 1) String>")
+                .withType("LinkedHashSet<@Size(max = 1) String>")
                 .toType()
                 .assertProperty("intMinMax")
                 .withType("List<@Min(1) @Max(10) Integer>")
@@ -1387,16 +1388,16 @@ public class SpringCodegenTest {
                 .toType()
 
                 .assertProperty("stringPatternNullable")
-                .withType("JsonNullable<Set<@Pattern(regexp = \"[a-z]\") String>>")
+                .withType("JsonNullable<LinkedHashSet<@Pattern(regexp = \"[a-z]\") String>>")
                 .toType()
                 .assertProperty("stringMaxMinLengthNullable")
-                .withType("JsonNullable<Set<@Size(min = 1, max = 10) String>>")
+                .withType("JsonNullable<LinkedHashSet<@Size(min = 1, max = 10) String>>")
                 .toType()
                 .assertProperty("stringMinLengthNullable")
                 .withType("JsonNullable<List<@Size(min = 1) String>>")
                 .toType()
                 .assertProperty("stringMaxLengthNullable")
-                .withType("JsonNullable<Set<@Size(max = 1) String>>")
+                .withType("JsonNullable<LinkedHashSet<@Size(max = 1) String>>")
                 .toType()
                 .assertProperty("intMinMaxNullable")
                 .withType("JsonNullable<List<@Min(1) @Max(10) Integer>>")
@@ -2455,13 +2456,14 @@ public class SpringCodegenTest {
         Map<String, File> files = generateFromContract("src/test/resources/bugs/issue_11897.yaml", SPRING_BOOT, additionalProperties);
 
         JavaFileAssert.assertThat(files.get("MetadataApi.java"))
+                .printFileContent()
                 .assertMethod("getWithArrayOfObjects").hasReturnType("ResponseEntity<List<TestResponse>>")
                 .toFileAssert()
                 .assertMethod("getWithArrayOfString").hasReturnType("ResponseEntity<List<String>>")
                 .toFileAssert()
-                .assertMethod("getWithSetOfObjects").hasReturnType("ResponseEntity<Set<TestResponse>>")
+                .assertMethod("getWithSetOfObjects").hasReturnType("ResponseEntity<LinkedHashSet<TestResponse>>")
                 .toFileAssert()
-                .assertMethod("getWithSetOfStrings").hasReturnType("ResponseEntity<Set<String>>")
+                .assertMethod("getWithSetOfStrings").hasReturnType("ResponseEntity<LinkedHashSet<String>>")
                 .toFileAssert()
                 .assertMethod("getWithMapOfObjects").hasReturnType("ResponseEntity<Map<String, TestResponse>>")
                 .toFileAssert()
@@ -5435,19 +5437,19 @@ public class SpringCodegenTest {
         JavaFileAssert.assertThat(files.get("PetDto.java"))
                 .fileContains("private @Nullable List<@Valid TagDto> tags")
                 .fileContains("private List<@Valid TagDto> tagsDefaultList = new ArrayList<>()")
-                .fileContains("private @Nullable Set<@Valid TagDto> tagsUnique")
-                .fileContains("private Set<@Valid TagDto> tagsDefaultSet = new LinkedHashSet<>();")
+                .fileContains("private @Nullable LinkedHashSet<@Valid TagDto> tagsUnique")
+                .fileContains("private LinkedHashSet<@Valid TagDto> tagsDefaultSet = new LinkedHashSet<>();")
                 .fileContains("private @Nullable List<String> stringList")
                 .fileContains("private List<String> stringDefaultList = new ArrayList<>(Arrays.asList(\"A\", \"B\"));")
                 .fileContains("private List<String> stringEmptyDefaultList = new ArrayList<>();")
-                .fileContains("@Nullable Set<String> stringSet")
-                .fileContains("private Set<String> stringDefaultSet = new LinkedHashSet<>(Arrays.asList(\"A\", \"B\"));")
-                .fileContains("private Set<String> stringEmptyDefaultSet = new LinkedHashSet<>();")
+                .fileContains("@Nullable LinkedHashSet<String> stringSet")
+                .fileContains("private LinkedHashSet<String> stringDefaultSet = new LinkedHashSet<>(Arrays.asList(\"A\", \"B\"));")
+                .fileContains("private LinkedHashSet<String> stringEmptyDefaultSet = new LinkedHashSet<>();")
                 .fileContains("private String toIndentedString(@Nullable Object o)")
                 .fileDoesNotContain("private List<@Valid TagDto> tags = new ArrayList<>()")
-                .fileDoesNotContain("private Set<@Valid TagDto> tagsUnique = new LinkedHashSet<>()")
+                .fileDoesNotContain("private LinkedHashSet<@Valid TagDto> tagsUnique = new LinkedHashSet<>()")
                 .fileDoesNotContain("private List<String> stringList = new ArrayList<>()")
-                .fileDoesNotContain("private Set<String> stringSet = new LinkedHashSet<>()");
+                .fileDoesNotContain("private LinkedHashSet<String> stringSet = new LinkedHashSet<>()");
     }
 
     @Test
@@ -6681,63 +6683,6 @@ public class SpringCodegenTest {
 
         Assertions.assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(generator::generate);
-    }
-
-    @Test
-    public void shouldImportJackson2JsonDeserializeForUniqueItemsWhenJackson3NotSet() throws IOException {
-        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        output.deleteOnExit();
-        String outputPath = output.getAbsolutePath().replace('\\', '/');
-
-        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore-echo.yaml");
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setOpenAPI(openAPI);
-        codegen.setOutputDir(output.getAbsolutePath());
-
-        codegen.additionalProperties().put(SpringCodegen.USE_SPRING_BOOT4, "true");
-        codegen.additionalProperties().put(SpringCodegen.USE_JACKSON_3, "false");
-
-        ClientOptInput input = new ClientOptInput();
-        input.openAPI(openAPI);
-        input.config(codegen);
-
-        DefaultGenerator generator = new DefaultGenerator();
-        generator.setGenerateMetadata(false); // skip metadata generation
-
-        Map<String, File> files = generator.opts(input).generate().stream()
-                .collect(Collectors.toMap(File::getName, Function.identity()));
-
-        JavaFileAssert.assertThat(Paths.get(outputPath + "/src/main/java/org/openapitools/model/Pet.java"))
-                .hasImports("com.fasterxml.jackson.databind.annotation.JsonDeserialize");
-    }
-
-    @Test
-    public void shouldImportJackson3JsonDeserializeForUniqueItemsWhenJackson3Set() throws IOException {
-        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
-        output.deleteOnExit();
-        String outputPath = output.getAbsolutePath().replace('\\', '/');
-
-        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore-echo.yaml");
-        final SpringCodegen codegen = new SpringCodegen();
-        codegen.setOpenAPI(openAPI);
-        codegen.setOutputDir(output.getAbsolutePath());
-
-        codegen.additionalProperties().put(SpringCodegen.USE_SPRING_BOOT4, "true");
-        codegen.additionalProperties().put(SpringCodegen.USE_JACKSON_3, "true");
-        codegen.additionalProperties().put(SpringCodegen.OPENAPI_NULLABLE, "false");
-
-        ClientOptInput input = new ClientOptInput();
-        input.openAPI(openAPI);
-        input.config(codegen);
-
-        DefaultGenerator generator = new DefaultGenerator();
-        generator.setGenerateMetadata(false); // skip metadata generation
-
-        Map<String, File> files = generator.opts(input).generate().stream()
-                .collect(Collectors.toMap(File::getName, Function.identity()));
-
-        JavaFileAssert.assertThat(Paths.get(outputPath + "/src/main/java/org/openapitools/model/Pet.java"))
-                .hasImports("tools.jackson.databind.annotation.JsonDeserialize");
     }
 
     @Test

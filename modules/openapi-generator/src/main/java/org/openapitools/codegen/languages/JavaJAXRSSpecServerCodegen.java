@@ -309,6 +309,10 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
             supportingFiles.add(new SupportingFile("config.yaml.mustache", "src/main/resources", "config.yaml"));
         }
 
+        if (library == null || DEFAULT_LIBRARY.equals(library)) {
+            supportsAdditionalPropertiesWithComposedSchema = true;
+        }
+
         convertPropertyToBooleanAndWriteBack(USE_GZIP_FEATURE, this::setUseGzipFeature);
     }
 

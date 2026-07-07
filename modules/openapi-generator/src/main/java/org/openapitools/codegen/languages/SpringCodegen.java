@@ -1075,19 +1075,12 @@ public class SpringCodegen extends AbstractJavaCodegen
                 dataTypeAssigner.setReturnType(rt.substring(start + 1, end).split(",", 2)[1].trim());
                 dataTypeAssigner.setReturnContainer("Map");
             }
-        } else if (rt.startsWith("Set") || rt.startsWith("java.util.Set")) {
+        } else if (rt.startsWith("Set") || rt.startsWith("java.util.Set") || rt.startsWith("LinkedHashSet") || rt.startsWith("java.util.LinkedHashSet")) {
             final int start = rt.indexOf("<");
             final int end = rt.lastIndexOf(">");
             if (start > 0 && end > 0) {
                 dataTypeAssigner.setReturnType(rt.substring(start + 1, end).trim());
                 dataTypeAssigner.setReturnContainer("Set");
-            }
-        } else if (rt.startsWith("LinkedHashSet") || rt.startsWith("java.util.LinkedHashSet")) {
-            final int start = rt.indexOf("<");
-            final int end = rt.lastIndexOf(">");
-            if (start > 0 && end > 0) {
-                dataTypeAssigner.setReturnType(rt.substring(start + 1, end).trim());
-                dataTypeAssigner.setReturnContainer("LinkedHashSet");
             }
         }
     }

@@ -15,7 +15,7 @@ import static org.openapitools.codegen.smals.utils.SmalsCodegenTestUtils.generat
 // Adapt generated Spring models by using LinkedHashSet instead of Set implementations and removing redundant @JsonDeserialize setter annotations.
 public class GenerateLinkedHashSetForUniqueItemsArrayTest {
 
-    @DisplayName("Should not generate @JsonDeserialize annotations for LinkedHashSet properties")
+    @DisplayName("Generate LinkedHashSet for uniqueItems array without JsonDeserialize")
     @ParameterizedTest
     @EnumSource(value = SmalsCodegenTestUtils.Generator.class, names = {"SPRING_BOOT", "SPRING_HTTP_INTERFACE"})
     public void shouldGenerateLinkedHashSetForUniqueItemsArrayWithoutJsonDeserializeTest(SmalsCodegenTestUtils.Generator generator) throws IOException {
@@ -36,6 +36,8 @@ public class GenerateLinkedHashSetForUniqueItemsArrayTest {
                 .assertMethodAnnotations()
                 .doesNotContainWithName("JsonDeserialize");
 
-        JavaFileAssert.assertThat(files.get("MyObjectsApi.java")).assertMethod("myObjectsGet").hasReturnType("ResponseEntity<LinkedHashSet<MyObject>>");
+        JavaFileAssert.assertThat(files.get("MyObjectsApi.java"))
+                .assertMethod("myObjectsGet")
+                .hasReturnType("ResponseEntity<Set<MyObject>>");
     }
 }

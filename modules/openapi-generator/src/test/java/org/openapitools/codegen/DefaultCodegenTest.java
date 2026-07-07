@@ -5224,5 +5224,4 @@ public class DefaultCodegenTest {
         if (props == null) return null;
         return props.stream().map(v -> v.name).collect(Collectors.toList());
     }
-
 }

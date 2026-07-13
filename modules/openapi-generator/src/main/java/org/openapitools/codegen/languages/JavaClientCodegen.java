@@ -709,6 +709,7 @@ public class JavaClientCodegen extends AbstractJavaCodegen
         } else if (libRestEasy) {
             supportingFiles.add(new SupportingFile("JSON.mustache", invokerFolder, "JSON.java"));
             forceSerializationLibrary(SERIALIZATION_LIBRARY_JACKSON);
+            supportsAdditionalPropertiesWithComposedSchema = true;
         } else if (libRestTemplate) {
             forceSerializationLibrary(SERIALIZATION_LIBRARY_JACKSON);
             supportingFiles.add(new SupportingFile("auth/Authentication.mustache", authFolder, "Authentication.java"));

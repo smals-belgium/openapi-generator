@@ -2275,6 +2275,8 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
     private static String[] getAccepts(OpenAPI openAPIArg, Operation operation) {
         final Set<String> producesInfo = getProducesInfo(openAPIArg, operation);
         if (producesInfo != null && !producesInfo.isEmpty()) {
+            // remove "application/problem+json" from generated annotations as response media type
+            producesInfo.remove("application/problem+json");
             return producesInfo.toArray(new String[]{});
         }
         return new String[]{"application/json"}; // default media type

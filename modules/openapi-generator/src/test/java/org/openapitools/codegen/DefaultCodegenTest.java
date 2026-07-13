@@ -5224,4 +5224,35 @@ public class DefaultCodegenTest {
         if (props == null) return null;
         return props.stream().map(v -> v.name).collect(Collectors.toList());
     }
+
+    @Test
+    void testResolveParentModelFromSchemaMappedParent() {
+        OpenAPI openAPI = new OpenAPI();
+        Components components = new Components();
+        components.addSchemas("Parent", new ObjectSchema());
+        openAPI.setComponents(components);
+
+        DefaultCodegen codegen = new DefaultCodegen();
+        codegen.setOpenAPI(openAPI);
+        codegen.schemaMapping().put("Parent", "com.example.Parent");
+
+        CodegenModel child = new CodegenModel();
+        child.setName("Child");
+        child.setParent("Parent");
+        child.setParentSchema("Parent");
+
+        ModelsMap modelsMap = new ModelsMap();
+        ModelMap modelMap = new ModelMap();
+        modelMap.setModel(child);
+        modelsMap.setModels(List.of(modelMap));
+
+        Map<String, ModelsMap> objs = Map.of("models", modelsMap);
+
+        Map<String, ModelsMap> updatedModelsMap = codegen.updateAllModels(objs);
+        CodegenModel model = updatedModelsMap.get("models").getModels().get(0).getModel();
+        CodegenModel parentModel = model.getParentModel();
+
+        assertNotNull(parentModel);
+        assertEquals("Parent", parentModel.getName());
+    }
 }

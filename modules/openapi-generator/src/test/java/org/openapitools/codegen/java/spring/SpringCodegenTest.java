@@ -8150,7 +8150,7 @@ public class SpringCodegenTest {
                 .assertMethod("someParentProperty")
                 .bodyContainsLines("super.someParentProperty(someParentProperty)");
     }
-}
+
     // Remove "application/problem+json" form generated response
     @Test
     void shouldNotIncludeProblemJsonInHttpExchangeAcceptHeader() throws IOException {

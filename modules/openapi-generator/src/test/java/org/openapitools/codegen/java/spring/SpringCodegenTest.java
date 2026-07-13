@@ -8133,6 +8133,24 @@ public class SpringCodegenTest {
                 .assertProperty("optionalRef").withType("JsonNullable<com.example.ExternalModel>");
     }
 
+    @Test
+    void shouldResolveMappedSchemaReferenceAsParentInAllOf() throws IOException {
+        Map<String, File> files = generateFromContract(
+                "src/test/resources/3_0/spring/schema-mapped-reference-as-parent-in-allof.yaml",
+                SPRING_BOOT,
+                new HashMap<>(),
+                configurator -> configurator
+                        .addSchemaMapping("Parent", "com.example.Parent")
+                        .addOpenapiNormalizer("REF_AS_PARENT_IN_ALLOF","true"));
+
+        assertNull(files.get("Parent.java"));
+
+        JavaFileAssert.assertThat(files.get("Child.java"))
+                .extendsClass("com.example.Parent")
+                .assertMethod("someParentProperty")
+                .bodyContainsLines("super.someParentProperty(someParentProperty)");
+    }
+
     // Remove "application/problem+json" form generated response
     @Test
     void shouldNotIncludeProblemJsonInHttpExchangeAcceptHeader() throws IOException {

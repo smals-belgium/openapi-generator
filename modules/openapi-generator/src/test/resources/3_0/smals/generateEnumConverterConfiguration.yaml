@@ -1,0 +1,33 @@
+openapi: 3.0.0
+info:
+  description: "Generate EnumConverterConfiguration class."
+  version: "1.0"
+  title: TestCase
+paths:
+  /myObjects:
+    get:
+      parameters:
+        - in: query
+          name: myEnum
+          schema:
+            $ref: '#/components/schemas/MyEnum'
+      responses:
+        200:
+          description: Very good response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyObject'
+components:
+  schemas:
+    MyObject:
+      type: object
+      properties:
+        name:
+          type: string
+    MyEnum:
+      type: string
+      enum:
+        - one
+        - two
+        - three

@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: Additional Properties True Test
+  version: 1.0.0
+components:
+  schemas:
+    Person:
+      type: object
+      additionalProperties: true
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+    Child:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Parent'
+        - properties:
+            firstName:
+              type: string
+            lastName:
+              type: string
+      additionalProperties: true
+    Parent:
+      type: object
+      properties:
+        parentProperty:
+          type: string

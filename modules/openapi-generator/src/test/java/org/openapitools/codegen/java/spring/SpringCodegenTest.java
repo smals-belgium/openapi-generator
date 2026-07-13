@@ -24,10 +24,14 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.servers.Server;
+import io.swagger.v3.oas.models.tags.Tag;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.MapAssert;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.openapitools.codegen.*;
 import org.openapitools.codegen.config.CodegenConfigurator;
 import org.openapitools.codegen.config.GlobalSettings;
@@ -38,6 +42,8 @@ import org.openapitools.codegen.languages.SpringCodegen;
 import org.openapitools.codegen.languages.features.BeanValidationFeatures;
 import org.openapitools.codegen.languages.features.CXFServerFeatures;
 import org.openapitools.codegen.languages.features.DocumentationProviderFeatures;
+import org.openapitools.codegen.model.OperationMap;
+import org.openapitools.codegen.model.OperationsMap;
 import org.openapitools.codegen.testutils.ConfigAssert;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -56,6 +62,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.groupingBy;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -1292,7 +1299,6 @@ public class SpringCodegenTest {
                 .collect(Collectors.toMap(File::getName, Function.identity()));
 
         JavaFileAssert.assertThat(files.get("ResponseTest.java"))
-                .printFileContent()
                 .isNormalClass()
                 .hasImports("javax.validation.Valid")
                 .assertProperty("details")
@@ -8076,6 +8082,54 @@ public class SpringCodegenTest {
 
         JavaFileAssert.assertThat(files.get("MyObject.java"))
                 .assertProperty("optionalRef").withType("JsonNullable<com.example.ExternalModel>");
+    }
+
+    private static Stream<Arguments> returnTypes() {
+        return Stream.of(
+                Arguments.of(null, "Void", null),
+                Arguments.of("List<User>", "User", "List"),
+                Arguments.of("java.util.List<User>", "User", "List"),
+                Arguments.of("Set<User>", "User", "Set"),
+                Arguments.of("java.util.Set<User>", "User", "Set"),
+                Arguments.of("LinkedHashSet<User>", "User", "Set"),
+                Arguments.of("java.util.LinkedHashSet<User>", "User", "Set"),
+                Arguments.of("Map<String, User>", "User", "Map"),
+                Arguments.of("java.util.Map<String, User>", "User", "Map"),
+                Arguments.of("Map<String, List<User>>", "List<User>", "Map"),
+                Arguments.of("LinkedHashSet<JsonNullable<String>>", "JsonNullable<String>", "Set")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("returnTypes")
+    void doDataTypeAssignmentTest(
+            String originalReturnType,
+            String expectedReturnType,
+            String expectedContainer) {
+
+        CodegenOperation operation = new CodegenOperation();
+        operation.returnType = originalReturnType;
+        operation.responses = Collections.emptyList();
+        operation.tags = List.of(new Tag().name("users"));
+
+        OperationMap operationMap = new OperationMap();
+        operationMap.setOperation(List.of(operation));
+
+        OperationsMap operationsMap = new OperationsMap();
+        operationsMap.setOperation(operationMap);
+        operationsMap.setImports(Collections.emptyList());
+
+        SpringCodegen springCodegen = new SpringCodegen();
+        springCodegen.postProcessOperationsWithModels(
+                operationsMap,
+                Collections.emptyList());
+
+        assertEquals(expectedReturnType, operation.returnType);
+        assertEquals(expectedContainer, operation.returnContainer);
+
+        if (originalReturnType == null){
+            assertTrue(operation.isVoid);
+        }
     }
 
 }

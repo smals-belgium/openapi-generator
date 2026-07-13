@@ -18,6 +18,11 @@ import java.util.stream.Collectors;
 public class SmalsCodegenTestUtils {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(SmalsCodegenTestUtils.class);
+
+    public static Map<String, File> generateFromContract(String url, Generator generator, Map<String, Object> additionalProperties) throws IOException {
+        return generateFromContract(url, generator, additionalProperties, null);
+    }
+
     public static Map<String, File> generateFromContract(String url, Generator generator, Map<String, Object> additionalProperties,
                                                          Consumer<CodegenConfigurator> consumer) throws IOException {
 
@@ -34,7 +39,9 @@ public class SmalsCodegenTestUtils {
         if (null != generator.getLibrary()) {
             configurator.setLibrary(generator.getLibrary());
         }
-        consumer.accept(configurator);
+        if (consumer != null) {
+            consumer.accept(configurator);
+        }
 
         ClientOptInput input = configurator.toClientOptInput();
         DefaultGenerator defaultGenerator = new DefaultGenerator();
@@ -46,7 +53,7 @@ public class SmalsCodegenTestUtils {
 
     private static String getUniqueName(File file) {
         String name = file.getName();
-        if ("package-info.java".equals(name)) {
+        if ("package-info.java" .equals(name)) {
             return file.getParentFile().getName() + "/" + name;
         }
         return name;

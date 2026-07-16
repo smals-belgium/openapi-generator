@@ -365,7 +365,7 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
             switch (multipartFormStyle) {
                 case MULTIPART_FORM_STYLE_RESTEASY:
                     customParameter.dataType = "MultipartFormDataInput";
-                    customParameter.paramName = toParameterName(customParameter.dataType);
+                    customParameter.paramName = StringUtils.uncapitalize(customParameter.dataType);
                     imports.add(customParameter.dataType);
                     importMapping.put(customParameter.dataType, "org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput");
                     break;
@@ -383,7 +383,7 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
                     }
                     customParameter.dataType = dataType;
                     imports.add(dataType);
-                    customParameter.paramName = toParameterName(dataType);
+                    customParameter.paramName = StringUtils.uncapitalize(dataType);
 
                     String multipartFormAnnotation = "MultipartForm";
                     customParameter.vendorExtensions.put("x-custom-param-annotation", multipartFormAnnotation);
@@ -393,10 +393,6 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
             }
             return Collections.singletonList(customParameter);
         }
-    }
-
-    public String toParameterName(String dataType) {
-        return dataType.substring(0, 1).toLowerCase() + dataType.substring(1);
     }
 
     @Override

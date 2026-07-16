@@ -36,4 +36,4 @@
     @Operation(summary = "{{{summary}}}", description = "{{{notes}}}"{{#isDeprecated}}, deprecated = true{{/isDeprecated}})
     @ApiResponses(value = { {{#responses}}
         @ApiResponse(responseCode = "{{{code}}}", description = "{{{message}}}"){{^-last}},{{/-last}}{{/responses}} }){{/useSwaggerV3Annotations}}
-    {{#supportAsync}}{{>returnAsyncTypeInterface}}{{/supportAsync}}{{^supportAsync}}{{#returnResponse}}Response{{/returnResponse}}{{^returnResponse}}{{>returnTypeInterface}}{{/returnResponse}}{{/supportAsync}} {{nickname}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>cookieParams}}{{>headerParams}}{{>bodyParams}}{{>formParams}}{{^-last}},{{/-last}}{{/allParams}});
+    {{#supportAsync}}{{>returnAsyncTypeInterface}}{{/supportAsync}}{{^supportAsync}}{{#returnResponse}}Response{{/returnResponse}}{{^returnResponse}}{{>returnTypeInterface}}{{/returnResponse}}{{/supportAsync}} {{nickname}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>cookieParams}}{{>headerParams}}{{>bodyParams}}{{>formParams}}{{>customParams}}{{^-last}},{{/-last}}{{/allParams}});

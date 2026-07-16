@@ -19,8 +19,11 @@ package org.openapitools.codegen.languages;
 
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.servers.Server;
-import java.util.Locale;
+
+import java.util.*;
+
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
@@ -30,10 +33,9 @@ import org.openapitools.codegen.meta.features.SecurityFeature;
 import org.openapitools.codegen.model.ModelMap;
 import org.openapitools.codegen.model.ModelsMap;
 import org.openapitools.codegen.model.OperationsMap;
+import org.openapitools.codegen.utils.ModelUtils;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
 
 import static org.openapitools.codegen.languages.features.GzipFeatures.USE_GZIP_FEATURE;
 
@@ -62,6 +64,13 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
     public static final String OPEN_LIBERTY_LIBRARY = "openliberty";
     public static final String HELIDON_LIBRARY = "helidon";
     public static final String KUMULUZEE_LIBRARY = "kumuluzee";
+
+    public static final String MULTIPART_FORM_STYLE = "multipartFormStyle";
+    public static final String MULTIPART_FORM_STYLE_DEFAULT = "spec";
+    public static final String MULTIPART_FORM_STYLE_RESTEASY = "resteasy";
+    public static final String MULTIPART_FORM_STYLE_RESTEASY_POJO = "resteasy-pojo";
+
+    private String multipartFormStyle = MULTIPART_FORM_STYLE_DEFAULT;
 
     private boolean interfaceOnly = false;
     private boolean returnResponse = false;
@@ -140,6 +149,7 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
         supportedLibraries.put(OPEN_LIBERTY_LIBRARY, "Server using Open Liberty");
         supportedLibraries.put(HELIDON_LIBRARY, "Server using Helidon");
         supportedLibraries.put(KUMULUZEE_LIBRARY, "Server using KumuluzEE");
+        supportedLibraries.put(MULTIPART_FORM_STYLE_RESTEASY, "JBoss EAP server using RESTEasy");
         library.setEnum(supportedLibraries);
 
         cliOptions.add(library);
@@ -155,6 +165,12 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
         cliOptions.add(CliOption.newBoolean(USE_MUTINY, "Whether to use Smallrye Mutiny instead of CompletionStage for asynchronous computation. Only valid when library is set to quarkus.", useMutiny));
         cliOptions.add(CliOption.newBoolean(USE_JAKARTA_SECURITY_ANNOTATIONS, "Whether to generate Jakarta security annotations (@RolesAllowed, @PermitAll). Requires useJakartaEe=true. Currently only supported when library is set to quarkus.", useJakartaSecurityAnnotations));
         cliOptions.add(CliOption.newBoolean(GENERATE_JSON_CREATOR, "Whether to generate @JsonCreator constructor for required properties.", generateJsonCreator));
+        cliOptions.add(CliOption.newString(MULTIPART_FORM_STYLE, "Whether generate additional property catch-all maps in the API model.")
+                .defaultValue(MULTIPART_FORM_STYLE_DEFAULT)
+                .addEnum(MULTIPART_FORM_STYLE_DEFAULT, "JAX-RS spec default")
+                .addEnum(MULTIPART_FORM_STYLE_RESTEASY, "RESTEasy MultipartFormDataInput parameter")
+                .addEnum(MULTIPART_FORM_STYLE_RESTEASY_POJO, "A custom POJO annotated with @MultipartForm"));
+
     }
 
     @Override
@@ -212,6 +228,8 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
             // Change default artifactId if generating interfaces only, before command line options are applied in base class.
             artifactId = "openapi-jaxrs-client";
         }
+
+        multipartFormStyle = (String) additionalProperties.getOrDefault(MULTIPART_FORM_STYLE, "spec");
 
         super.processOpts();
 
@@ -334,6 +352,51 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
             codegenModel.imports.remove("JsonTypeName");
         }
         return codegenModel;
+    }
+
+    @Override
+    public List<CodegenParameter> fromRequestBodyToFormParameters(RequestBody body, Set<String> imports) {
+        String contentType = getContentType(body);
+        if (MULTIPART_FORM_STYLE_DEFAULT.equals(multipartFormStyle) || contentType == null || !contentType.startsWith("multipart")) {
+            return super.fromRequestBodyToFormParameters(body, imports);
+        } else {
+            final CodegenParameter customParameter = new CodegenParameter();
+            customParameter.vendorExtensions.put("x-custom-param", true);
+            switch (multipartFormStyle) {
+                case MULTIPART_FORM_STYLE_RESTEASY:
+                    customParameter.dataType = "MultipartFormDataInput";
+                    customParameter.paramName = toParameterName(customParameter.dataType);
+                    imports.add(customParameter.dataType);
+                    importMapping.put(customParameter.dataType, "org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput");
+                    break;
+                case MULTIPART_FORM_STYLE_RESTEASY_POJO:
+                    String dataType;
+                    if (body.get$ref() != null) {
+                        final String simpleRef = ModelUtils.getSimpleRef(body.get$ref());
+                        dataType = toModelName(simpleRef);
+                    } else if (body.getContent() == null || body.getContent().values().stream().findFirst().isEmpty()) {
+                        dataType = "Object";
+                    } else {
+                        final Schema schema = body.getContent().values().stream().findAny().get().getSchema();
+                        final String simpleRef = ModelUtils.getSimpleRef(schema.get$ref());
+                        dataType = toModelName(simpleRef);
+                    }
+                    customParameter.dataType = dataType;
+                    imports.add(dataType);
+                    customParameter.paramName = toParameterName(dataType);
+
+                    String multipartFormAnnotation = "MultipartForm";
+                    customParameter.vendorExtensions.put("x-custom-param-annotation", multipartFormAnnotation);
+                    imports.add(multipartFormAnnotation);
+                    importMapping.put(multipartFormAnnotation, "org.jboss.resteasy.annotations.providers.multipart.MultipartForm");
+                    break;
+            }
+            return Collections.singletonList(customParameter);
+        }
+    }
+
+    public String toParameterName(String dataType) {
+        return dataType.substring(0, 1).toLowerCase() + dataType.substring(1);
     }
 
     @Override

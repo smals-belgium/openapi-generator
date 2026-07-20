@@ -31,8 +31,7 @@ public class GenerateAdditionalPropertiesTest {
                 .withType("Map<String, Object>")
                 .toType()
                 .assertMethod("putAdditionalProperty").assertMethodAnnotations().containsWithName("JsonAnySetter").toMethod().toFileAssert()
-                .assertMethod("getAdditionalProperties").assertMethodAnnotations().containsWithName("JsonAnyGetter").toMethod().toFileAssert()
-                .printFileContent();
+                .assertMethod("getAdditionalProperties").assertMethodAnnotations().containsWithName("JsonAnyGetter").toMethod().toFileAssert();
 
         JavaFileAssert.assertThat(files.get("Child.java"))
                 .extendsClass("Parent")
@@ -40,10 +39,7 @@ public class GenerateAdditionalPropertiesTest {
                 .withType("Map<String, Object>")
                 .toType()
                 .assertMethod("putAdditionalProperty").assertMethodAnnotations().containsWithName("JsonAnySetter").toMethod().toFileAssert()
-                .assertMethod("getAdditionalProperties").assertMethodAnnotations().containsWithName("JsonAnyGetter").toMethod().toFileAssert()
-                .printFileContent();
-        ;
-
+                .assertMethod("getAdditionalProperties").assertMethodAnnotations().containsWithName("JsonAnyGetter").toMethod().toFileAssert();
     }
 }
 

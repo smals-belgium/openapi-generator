@@ -30,6 +30,11 @@
 {{{vendorExtensions.x-class-extra-annotation}}}
 {{/vendorExtensions.x-class-extra-annotation}}
 public class {{classname}} {{#parent}}extends {{{.}}} {{/parent}}{{#vendorExtensions.x-implements}}{{#-first}}implements {{{.}}}{{/-first}}{{^-first}}, {{{.}}}{{/-first}}{{#-last}} {{/-last}}{{/vendorExtensions.x-implements}}{
+
+{{#backReferences}}
+  private Object parent;
+{{/backReferences}}
+
 {{#serializableModel}}
   private static final long serialVersionUID = 1L;
 
@@ -121,6 +126,20 @@ public class {{classname}} {{#parent}}extends {{{.}}} {{/parent}}{{#vendorExtens
     this();
   {{#readOnlyVars}}
     this.{{name}} = {{#vendorExtensions.x-is-jackson-optional-nullable}}{{name}} == null ? JsonNullable.<{{{datatypeWithEnum}}}>undefined() : JsonNullable.of({{name}}){{/vendorExtensions.x-is-jackson-optional-nullable}}{{^vendorExtensions.x-is-jackson-optional-nullable}}{{name}}{{/vendorExtensions.x-is-jackson-optional-nullable}};
+    {{#backReferences}}
+    {{#isModel}}
+    {{^required}}if (this.{{name}} != null) { {{/required}}
+    this.{{name}}.setParent(this);
+    {{^required}} } {{/required}}
+    {{/isModel}}
+    {{#isArray}}
+    {{#items.isModel}}
+    {{^required}}if (this.{{name}} != null) { {{/required}}
+    this.{{name}}.forEach(item -> item.setParent(this));
+    {{^required}} } {{/required}}
+    {{/items.isModel}}
+    {{/isArray}}
+    {{/backReferences}}
   {{/readOnlyVars}}
   }
   {{/withXml}}
@@ -139,6 +158,18 @@ public class {{classname}} {{#parent}}extends {{{.}}} {{/parent}}{{#vendorExtens
 {{/vars}}
   }
 {{/vendorExtensions.x-java-all-args-constructor}}
+
+{{#backReferences}}
+  @JsonBackReference
+  public Object getParent() {
+    return this.parent;
+  }
+
+  @JsonBackReference
+  public void setParent(Object parent) {
+    this.parent = parent;
+  }
+{{/backReferences}}
 
 {{#vars}}
   {{^isReadOnly}}
@@ -240,6 +271,12 @@ public class {{classname}} {{#parent}}extends {{{.}}} {{/parent}}{{#vendorExtens
   @JsonIgnore
 {{/vendorExtensions.x-is-jackson-optional-nullable}}
 {{^vendorExtensions.x-is-jackson-optional-nullable}}{{#jackson}}{{> jackson_annotations}}{{/jackson}}{{/vendorExtensions.x-is-jackson-optional-nullable}}
+{{#backReferences}}
+{{#isModel}}  @JsonManagedReference{{/isModel}}
+{{#isArray}}
+{{#items.isModel}}  @JsonManagedReference{{/items.isModel}}
+{{/isArray}}
+{{/backReferences}}
   public {{>nullableDatatypeWithEnum}} {{getter}}() {
     {{#vendorExtensions.x-is-jackson-optional-nullable}}
     {{#isReadOnly}}{{! A readonly attribute doesn't have setter => jackson will set null directly if explicitly returned by API, so make sure we have an empty JsonNullable}}
@@ -270,7 +307,14 @@ public class {{classname}} {{#parent}}extends {{{.}}} {{/parent}}{{#vendorExtens
 
   {{^isReadOnly}}
 {{#vendorExtensions.x-setter-extra-annotation}}  {{{vendorExtensions.x-setter-extra-annotation}}}
-{{/vendorExtensions.x-setter-extra-annotation}}{{#jackson}}{{^vendorExtensions.x-is-jackson-optional-nullable}}{{> jackson_annotations}}{{/vendorExtensions.x-is-jackson-optional-nullable}}{{/jackson}}  public void {{setter}}({{>nullableArgumentWithEnum}} {{name}}) {
+{{/vendorExtensions.x-setter-extra-annotation}}{{#jackson}}{{^vendorExtensions.x-is-jackson-optional-nullable}}{{> jackson_annotations}}{{/vendorExtensions.x-is-jackson-optional-nullable}}{{/jackson}}
+{{#backReferences}}
+{{#isModel}}  @JsonManagedReference{{/isModel}}
+{{#isArray}}
+{{#items.isModel}}  @JsonManagedReference{{/items.isModel}}
+{{/isArray}}
+{{/backReferences}}
+  public void {{setter}}({{>nullableArgumentWithEnum}} {{name}}) {
     {{#vendorExtensions.x-is-jackson-optional-nullable}}
     this.{{name}} = JsonNullable.<{{{datatypeWithEnum}}}>of({{name}});
     {{/vendorExtensions.x-is-jackson-optional-nullable}}

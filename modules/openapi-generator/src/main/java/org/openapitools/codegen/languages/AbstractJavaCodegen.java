@@ -119,6 +119,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
     public static final String DEFAULT_TEST_FOLDER = "${project.build.directory}/generated-test-sources/openapi";
     public static final String GENERATE_CONSTRUCTOR_WITH_ALL_ARGS = "generateConstructorWithAllArgs";
     public static final String GENERATE_BUILDERS = "generateBuilders";
+    public static final String BACK_REFERENCES = "backReferences";
 
     @Getter @Setter
     protected String dateLibrary = "java8";
@@ -214,6 +215,8 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
     protected boolean jackson = false;
     @Getter @Setter
     protected boolean generateBuilders;
+    @Getter @Setter
+    protected boolean backReferences;
     @Getter @Setter
     protected boolean disableDiscriminatorJsonIgnoreProperties = false;
     /**
@@ -403,6 +406,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         cliOptions.add(enumPropertyNamingOpt.defaultValue(enumPropertyNaming.name()));
 
         cliOptions.add(CliOption.newString(CodegenConstants.DEFAULT_TO_EMPTY_CONTAINER, CodegenConstants.DEFAULT_TO_EMPTY_CONTAINER_DESC));
+        cliOptions().add(CliOption.newBoolean(BACK_REFERENCES, "Whether to generate @JsonBackReference and @JsonManagedReference annotations").defaultValue(Boolean.FALSE.toString()));
     }
 
     @Override
@@ -452,6 +456,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
 
         convertPropertyToBooleanAndWriteBack(GENERATE_CONSTRUCTOR_WITH_ALL_ARGS, this::setGenerateConstructorWithAllArgs);
         convertPropertyToBooleanAndWriteBack(GENERATE_BUILDERS, this::setGenerateBuilders);
+        convertPropertyToBooleanAndWriteBack(BACK_REFERENCES, this::setBackReferences);
         convertPropertyToBooleanAndWriteBack(DISABLE_DISCRIMINATOR_JSON_IGNORE_PROPERTIES, this::setDisableDiscriminatorJsonIgnoreProperties);
         if (StringUtils.isEmpty(System.getenv("JAVA_POST_PROCESS_FILE"))) {
             LOGGER.info("Environment variable JAVA_POST_PROCESS_FILE not defined so the Java code may not be properly formatted. To define it, try 'export JAVA_POST_PROCESS_FILE=\"/usr/local/bin/clang-format -i\"' (Linux/Mac)");
@@ -646,6 +651,9 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         importMapping.put("JsonIgnore", "com.fasterxml.jackson.annotation.JsonIgnore");
         importMapping.put("JsonIgnoreProperties", "com.fasterxml.jackson.annotation.JsonIgnoreProperties");
         importMapping.put("JsonInclude", "com.fasterxml.jackson.annotation.JsonInclude");
+        importMapping.put("JsonManagedReference", "com.fasterxml.jackson.annotation.JsonManagedReference");
+        importMapping.put("JsonBackReference", "com.fasterxml.jackson.annotation.JsonBackReference");
+
         if (openApiNullable) {
             importMapping.put("JsonNullable", "org.openapitools.jackson.nullable.JsonNullable");
         }
@@ -2017,6 +2025,11 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         // if data type happens to be the same as the property name and both are upper case
         if (property.dataType != null && property.dataType.equals(property.name) && property.dataType.toUpperCase(Locale.ROOT).equals(property.name)) {
             property.name = property.name.toLowerCase(Locale.ROOT);
+        }
+
+        if (backReferences){
+            model.imports.add("JsonManagedReference");
+            model.imports.add("JsonBackReference");
         }
     }
 

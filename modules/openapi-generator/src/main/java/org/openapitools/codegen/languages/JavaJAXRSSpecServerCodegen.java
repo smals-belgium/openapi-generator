@@ -165,7 +165,7 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
         cliOptions.add(CliOption.newBoolean(USE_MUTINY, "Whether to use Smallrye Mutiny instead of CompletionStage for asynchronous computation. Only valid when library is set to quarkus.", useMutiny));
         cliOptions.add(CliOption.newBoolean(USE_JAKARTA_SECURITY_ANNOTATIONS, "Whether to generate Jakarta security annotations (@RolesAllowed, @PermitAll). Requires useJakartaEe=true. Currently only supported when library is set to quarkus.", useJakartaSecurityAnnotations));
         cliOptions.add(CliOption.newBoolean(GENERATE_JSON_CREATOR, "Whether to generate @JsonCreator constructor for required properties.", generateJsonCreator));
-        cliOptions.add(CliOption.newString(MULTIPART_FORM_STYLE, "Whether generate additional property catch-all maps in the API model.")
+        cliOptions.add(CliOption.newString(MULTIPART_FORM_STYLE, "Style used to generate multipart/form-data request parameters.")
                 .defaultValue(MULTIPART_FORM_STYLE_DEFAULT)
                 .addEnum(MULTIPART_FORM_STYLE_DEFAULT, "JAX-RS spec default")
                 .addEnum(MULTIPART_FORM_STYLE_RESTEASY, "RESTEasy MultipartFormDataInput parameter")
@@ -360,14 +360,14 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
         if (MULTIPART_FORM_STYLE_DEFAULT.equals(multipartFormStyle) || contentType == null || !contentType.startsWith("multipart")) {
             return super.fromRequestBodyToFormParameters(body, imports);
         } else {
-            final CodegenParameter customParameter = new CodegenParameter();
-            customParameter.vendorExtensions.put("x-custom-param", true);
+            final CodegenParameter multipartParameter = new CodegenParameter();
+            multipartParameter.vendorExtensions.put("x-multipart-param", true);
             switch (multipartFormStyle) {
                 case MULTIPART_FORM_STYLE_RESTEASY:
-                    customParameter.dataType = "MultipartFormDataInput";
-                    customParameter.paramName = StringUtils.uncapitalize(customParameter.dataType);
-                    imports.add(customParameter.dataType);
-                    importMapping.put(customParameter.dataType, "org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput");
+                    multipartParameter.dataType = "MultipartFormDataInput";
+                    multipartParameter.paramName = StringUtils.uncapitalize(multipartParameter.dataType);
+                    imports.add(multipartParameter.dataType);
+                    importMapping.put(multipartParameter.dataType, "org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput");
                     break;
                 case MULTIPART_FORM_STYLE_RESTEASY_POJO:
                     String dataType;
@@ -381,17 +381,17 @@ public class JavaJAXRSSpecServerCodegen extends AbstractJavaJAXRSServerCodegen {
                         final String simpleRef = ModelUtils.getSimpleRef(schema.get$ref());
                         dataType = toModelName(simpleRef);
                     }
-                    customParameter.dataType = dataType;
+                    multipartParameter.dataType = dataType;
                     imports.add(dataType);
-                    customParameter.paramName = StringUtils.uncapitalize(dataType);
+                    multipartParameter.paramName = StringUtils.uncapitalize(dataType);
 
                     String multipartFormAnnotation = "MultipartForm";
-                    customParameter.vendorExtensions.put("x-custom-param-annotation", multipartFormAnnotation);
+                    multipartParameter.vendorExtensions.put("x-multipart-param-annotation", multipartFormAnnotation);
                     imports.add(multipartFormAnnotation);
                     importMapping.put(multipartFormAnnotation, "org.jboss.resteasy.annotations.providers.multipart.MultipartForm");
                     break;
             }
-            return Collections.singletonList(customParameter);
+            return Collections.singletonList(multipartParameter);
         }
     }
 

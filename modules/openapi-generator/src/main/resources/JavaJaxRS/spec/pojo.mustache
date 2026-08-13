@@ -54,6 +54,9 @@ import {{javaxPackage}}.xml.bind.annotation.XmlEnumValue;
 {{{vendorExtensions.x-class-extra-annotation}}}
 {{/vendorExtensions.x-class-extra-annotation}}
 public class {{classname}} {{#parent}}extends {{{.}}}{{/parent}} {{#vendorExtensions.x-implements}}{{#-first}}implements {{{.}}}{{/-first}}{{^-first}}, {{{.}}}{{/-first}}{{/vendorExtensions.x-implements}} {
+  {{#backReferences}}
+  private Object parent;
+  {{/backReferences}}
   {{#vars}}
   {{#isEnum}}
   {{^isContainer}}
@@ -99,7 +102,17 @@ public class {{classname}} {{#parent}}extends {{{.}}}{{/parent}} {{#vendorExtens
   {{/generateBuilders}}
   public {{classname}}() {
   }
+  {{#backReferences}}
+  @JsonBackReference
+  public Object getParent() {
+    return this.parent;
+  }
 
+  @JsonBackReference
+  public void setParent(Object parent) {
+    this.parent = parent;
+  }
+  {{/backReferences}}
   {{#jackson}}
   {{#generateJsonCreator}}
   {{#hasRequired}}
@@ -119,6 +132,12 @@ public class {{classname}} {{#parent}}extends {{{.}}}{{/parent}} {{#vendorExtens
     {{#vars}}
     {{#required}}
     this.{{name}} = {{name}};
+    {{#backReferences}}
+    {{#isModel}}this.{{name}}.setParent(this);{{/isModel}}
+    {{#isArray}}
+    {{#items.isModel}}this.{{name}}.forEach(item -> item.setParent(this));{{/items.isModel}}
+    {{/isArray}}
+    {{/backReferences}}
     {{/required}}
     {{/vars}}
   }
@@ -168,6 +187,12 @@ public class {{classname}} {{#parent}}extends {{{.}}}{{/parent}} {{#vendorExtens
   @Schema({{#example}}example = "{{{.}}}", {{/example}}{{#required}}required = {{required}}, {{/required}}description = "{{{description}}}"{{#deprecated}}, deprecated = true{{/deprecated}}){{/useSwaggerV3Annotations}}{{#useMicroProfileOpenAPIAnnotations}}
   @org.eclipse.microprofile.openapi.annotations.media.Schema({{#example}}example = "{{{.}}}", {{/example}}{{#required}}required = {{required}}, {{/required}}description = "{{{description}}}"{{#deprecated}}, deprecated = true{{/deprecated}}){{/useMicroProfileOpenAPIAnnotations}}
   {{#jackson}}@JsonProperty({{#required}}required = {{required}}, value = {{/required}}"{{baseName}}"){{/jackson}}
+  {{#backReferences}}
+  {{#isModel}}@JsonManagedReference{{/isModel}}
+  {{#isArray}}
+  {{#items.isModel}}@JsonManagedReference{{/items.isModel}}
+  {{/isArray}}
+  {{/backReferences}}
   {{#vendorExtensions.x-is-jackson-optional-nullable}}
   public JsonNullable<{{{datatypeWithEnum}}}> {{getter}}() {
     return {{name}};
@@ -188,6 +213,10 @@ public class {{classname}} {{#parent}}extends {{{.}}}{{/parent}} {{#vendorExtens
   {{#jackson}}
   @JsonProperty({{#required}}required = {{required}}, value = {{/required}}"{{baseName}}")
   {{/jackson}}
+  {{#backReferences}}
+  {{#isModel}}@JsonManagedReference{{/isModel}}{{#isArray}}
+  {{#items.isModel}}@JsonManagedReference{{/items.isModel}}{{/isArray}}
+  {{/backReferences}}
   {{#vendorExtensions.x-setter-extra-annotation}}{{{vendorExtensions.x-setter-extra-annotation}}}
   {{/vendorExtensions.x-setter-extra-annotation}}public void {{setter}}({{{datatypeWithEnum}}} {{name}}) {
   {{#vendorExtensions.x-is-jackson-optional-nullable}}

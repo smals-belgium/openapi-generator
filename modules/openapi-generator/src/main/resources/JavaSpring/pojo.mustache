@@ -40,6 +40,9 @@ public {{>sealed}}class {{classname}}{{#parent}} extends {{{parent}}}{{/parent}}
 
   private static final long serialVersionUID = 1L;
 {{/serializableModel}}
+  {{#backReferences}}
+  private Object parent;
+  {{/backReferences}}
   {{#vars}}
 
     {{#isEnum}}
@@ -139,6 +142,20 @@ public {{>sealed}}class {{classname}}{{#parent}} extends {{{parent}}}{{/parent}}
   }
   {{/vendorExtensions.x-java-all-args-constructor}}
   {{/lombok.Data}}
+  {{#backReferences}}
+  {{^lombok.Getter}}
+  @JsonBackReference
+  public Object getParent() {
+    return this.parent;
+  }
+  {{/lombok.Getter}}
+  {{^lombok.Setter}}
+  @JsonBackReference
+  public void setParent(Object parent) {
+    this.parent = parent;
+  }
+  {{/lombok.Setter}}
+  {{/backReferences}}
   {{#vars}}
   {{^lombok.Data}}
 

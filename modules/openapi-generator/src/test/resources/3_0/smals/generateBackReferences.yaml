@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  description: "This is a testcase for the generation of @JsonBackReference and @JsonManagedReference annotations."
+  version: "1.0"
+  title: TestCase
+paths:
+  /myObjects:
+    get:
+      responses:
+        200:
+          description: Very good response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyCollection'
+components:
+  schemas:
+    MyCollection:
+      type: object
+      properties:
+        objects:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyObject'
+        subProperty:
+          $ref: '#/components/schemas/SubProperty'
+        lastProperty:
+          allOf:
+            - $ref: '#/components/schemas/SubProperty'
+          readOnly: true
+    MyObject:
+      type: object
+      required:
+        - subProperty
+        - subProperties
+      properties:
+        name:
+          type: string
+        subProperty:
+          $ref: '#/components/schemas/SubProperty'
+        subProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubProperty'
+    SubProperty:
+      type: object
+      properties:
+        number:
+          type: number
+        name:
+          type: string

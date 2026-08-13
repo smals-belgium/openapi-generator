@@ -5,3 +5,9 @@
   @JacksonXmlElementWrapper({{#isXmlWrapped}}localName = "{{xmlName}}{{^xmlName}}{{baseName}}{{/xmlName}}", {{#xmlNamespace}}namespace = "{{.}}", {{/xmlNamespace}}{{/isXmlWrapped}}useWrapping = {{isXmlWrapped}})
   {{/isContainer}}
 {{/withXml}}
+{{#backReferences}}
+  {{#isModel}}@JsonManagedReference{{/isModel}}
+  {{#isArray}}
+  {{#items.isModel}}@JsonManagedReference{{/items.isModel}}
+  {{/isArray}}
+{{/backReferences}}

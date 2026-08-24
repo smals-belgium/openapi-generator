@@ -9,13 +9,13 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.openapitools.codegen.CodegenOperation;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.openapitools.codegen.ClientOptInput;
 import org.openapitools.codegen.CodegenConstants;
+import org.openapitools.codegen.CodegenOperation;
 import org.openapitools.codegen.DefaultGenerator;
 import org.openapitools.codegen.TestUtils;
 import org.openapitools.codegen.antlr4.KotlinLexer;
@@ -709,6 +709,48 @@ public class KotlinServerCodegenTest {
         );
     }
 
+    @Test
+    public void delegatePattern_headerParamPrimitiveConversion() throws IOException {
+        // Regression test for https://github.com/OpenAPITools/openapi-generator/issues/24214
+        // Header params were converted with `it.to<fully.qualified.DataType>()`
+        // (e.g. `it.tokotlin.Boolean()`, `it.tojava.math.BigDecimal()`), which is not valid Kotlin.
+        // The correct String extension is `it.to<SimpleName>()`.
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+
+        KotlinServerCodegen codegen = new KotlinServerCodegen();
+        codegen.setOutputDir(output.getAbsolutePath());
+        codegen.additionalProperties().put(LIBRARY, KTOR);
+        codegen.additionalProperties().put(DELEGATE_PATTERN, true);
+
+        new DefaultGenerator().opts(new ClientOptInput()
+                        .openAPI(TestUtils.parseSpec("src/test/resources/3_0/kotlin/issue24214-ktor-header-param-conversion.yaml"))
+                        .config(codegen))
+                .generate();
+
+        Path apiPath = Paths.get(output.getAbsolutePath()
+                + "/src/main/kotlin/org/openapitools/server/apis/DefaultApi.kt");
+
+        assertFileContains(
+                apiPath,
+                "val boolHeader = call.request.headers[\"bool-header\"]?.let { runCatching { it.toBoolean() }",
+                "val intHeader = call.request.headers[\"int-header\"]?.let { runCatching { it.toInt() }",
+                "val longHeader = call.request.headers[\"long-header\"]?.let { runCatching { it.toLong() }",
+                "val doubleHeader = call.request.headers[\"double-header\"]?.let { runCatching { it.toDouble() }",
+                "val numberHeader = call.request.headers[\"number-header\"]?.let { runCatching { it.toBigDecimal() }"
+        );
+
+        // The old, uncompilable fully-qualified conversions must be gone.
+        assertFileNotContains(
+                apiPath,
+                "it.tokotlin.Boolean()",
+                "it.tokotlin.Int()",
+                "it.tokotlin.Long()",
+                "it.tokotlin.Double()",
+                "it.tojava.math.BigDecimal()"
+        );
+    }
+
 
     @Test
     public void testFloatingPointMultipleOfValidationUsesTolerance() throws IOException {
@@ -750,5 +792,39 @@ public class KotlinServerCodegenTest {
                 multipleOfModel,
                 "if (intVal % 2 != 0) {"
         );
+    }
+
+    // ==================== Cross-tag path shadowing (issue #23414) ====================
+
+    @Test
+    public void testCommonPathDoesNotShadowOtherTags_jaxrsSpec() throws IOException {
+        // Regression test for https://github.com/OpenAPITools/openapi-generator/issues/23414
+        // tag-one owns /foo/bar/one and /foo/bar/two
+        // tag-two owns /foo/bar/three and /baz/bar/four
+        // TagOneApi must NOT have @Path("/foo/bar") at class level because that would shadow
+        // TagTwoApi's /foo/bar/three route in the JAX-RS runtime.
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+
+        KotlinServerCodegen codegen = new KotlinServerCodegen();
+        codegen.setOutputDir(output.getAbsolutePath());
+        codegen.additionalProperties().put(LIBRARY, JAXRS_SPEC);
+        codegen.additionalProperties().put(USE_TAGS, true);
+
+        new DefaultGenerator().opts(new ClientOptInput()
+                        .openAPI(TestUtils.parseSpec("src/test/resources/3_0/issue_23414.yaml"))
+                        .config(codegen))
+                .generate();
+
+        String outputPath = output.getAbsolutePath() + "/src/main/kotlin/org/openapitools/server";
+        Path tagOneApi = Paths.get(outputPath + "/apis/TagOneApi.kt");
+        Path tagTwoApi = Paths.get(outputPath + "/apis/TagTwoApi.kt");
+
+        // TagOneApi must NOT have @Path("/foo/bar") — this shadows TagTwoApi's /foo/bar/three
+        assertFileNotContains(tagOneApi, "@Path(\"/foo/bar\")");
+
+        // All operations must still be reachable with their full paths
+        assertFileContains(tagOneApi, "@Path(\"/foo/bar/one\")", "@Path(\"/foo/bar/two\")");
+        assertFileContains(tagTwoApi, "@Path(\"/foo/bar/three\")", "@Path(\"/baz/bar/four\")");
     }
 }

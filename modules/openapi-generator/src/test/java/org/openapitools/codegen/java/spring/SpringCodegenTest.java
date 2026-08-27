@@ -4147,7 +4147,6 @@ public class SpringCodegenTest {
 
 
         JavaFileAssert javaFileAssert = JavaFileAssert.assertThat(Paths.get(outputPath + "/src/main/java/org/openapitools/model/Animal.java"))
-                .printFileContent()
                 .hasImports("jakarta.validation.Valid")
                 .hasImports("jakarta.validation.constraints")
 

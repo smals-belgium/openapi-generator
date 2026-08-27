@@ -1,0 +1,74 @@
+openapi: "3.0.2"
+info:
+  title: "Generate annotations for x-extra-annotation extensions"
+  version: "1.0"
+tags:
+  - name: "Pets"
+servers:
+  - url: https://api.server.test/v1
+
+paths:
+  /pets:
+    post:
+        tags:
+            - "Pets"
+        operationId: "addPet"
+        requestBody:
+            content:
+              application/x-www-form-urlencoded:
+                 schema:
+                   type: object
+                   properties:
+                     id:
+                       type: string
+                       x-extra-annotation: '@be.belgium.gcloud.rest.annotation.FormParam'
+        responses:
+            '200':
+              description: OK
+  /pets/{pathParam}:
+    get:
+      tags:
+        - "Pets"
+      operationId: "getPet"
+      parameters:
+        - name: queryParam
+          in: query
+          required: true
+          schema:
+            type: string
+          x-extra-annotation: '@be.belgium.gcloud.rest.annotation.QueryParam'
+        - name: headerParam
+          in: header
+          required: true
+          schema:
+            type: string
+          x-extra-annotation: '@be.belgium.gcloud.rest.annotation.HeaderParam'
+        - name: pathParam
+          in: path
+          description: ID of pet to return
+          required: true
+          schema:
+            type: string
+          x-extra-annotation: '@be.belgium.gcloud.rest.annotation.PathParam'
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    Pet:
+      type: object
+      additionalProperties: true
+      properties:
+        petId:
+          type: string
+          x-extra-annotation: '@be.belgium.gcloud.rest.annotation.PetId'
+        name:
+          type: string
+          x-extra-annotation:
+            - '@be.belgium.gcloud.rest.annotation.ValidName'
+            - '@be.belgium.gcloud.rest.annotation.ValidChars'
+        owners:
+          type: array
+          items:
+            type: string
+            x-extra-annotation: '@be.belgium.gcloud.rest.annotation.OwnerId'

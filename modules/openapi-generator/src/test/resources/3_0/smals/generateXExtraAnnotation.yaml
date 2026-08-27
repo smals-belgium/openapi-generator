@@ -57,7 +57,9 @@ components:
   schemas:
     Pet:
       type: object
-      additionalProperties: true
+      additionalProperties:
+        type: string
+        x-extra-annotation: "@be.belgium.gcloud.rest.annotation.AdditionalProperties"
       properties:
         petId:
           type: string

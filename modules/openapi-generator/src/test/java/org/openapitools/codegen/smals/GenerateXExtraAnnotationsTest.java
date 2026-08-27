@@ -64,7 +64,10 @@ public class GenerateXExtraAnnotationsTest {
                 .containsWithName("be.belgium.gcloud.rest.annotation.ValidChars").toMethod().toFileAssert()
 
                 // x-extra-annotation on an array item type
-                .assertMethod("getOwners").hasReturnType("List<@be.belgium.gcloud.rest.annotation.OwnerId String>");
+                .assertMethod("getOwners").hasReturnType("List<@be.belgium.gcloud.rest.annotation.OwnerId String>").toFileAssert()
+
+                // x-extra-annotation on additionalProperties
+                .assertMethod("getAdditionalProperties").hasReturnType("Map<String, @be.belgium.gcloud.rest.annotation.AdditionalProperties String>");
     }
 
     private void assertParameterHasAnnotation(MethodAssert methodAssert, String parameterName, String annotationName) {

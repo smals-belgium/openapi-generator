@@ -23,7 +23,7 @@
     * Return the additional (undeclared) property.
     */
     @JsonAnyGetter
-    public Map<String, {{{.}}}> getAdditionalProperties() {
+    public Map<String,{{#vendorExtensions.x-extra-additional-properties-annotation}}{{{.}}} {{/vendorExtensions.x-extra-additional-properties-annotation}} {{{.}}}> getAdditionalProperties() {
         return additionalProperties;
     }
 

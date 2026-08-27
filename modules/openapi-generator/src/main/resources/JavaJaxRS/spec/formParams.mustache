@@ -1,2 +1,2 @@
-{{#isFormParam}}
+{{#isFormParam}}{{>extraAnnotations}}
 {{#isDeprecated}}@Deprecated {{/isDeprecated}}{{^isFile}}@FormParam(value = "{{baseName}}")  {{{dataType}}} {{paramName}}{{/isFile}}{{#isFile}}@FormParam(value = "{{baseName}}") InputStream {{paramName}}InputStream{{/isFile}}{{/isFormParam}}

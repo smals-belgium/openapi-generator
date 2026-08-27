@@ -79,7 +79,7 @@ public {{>sealed}}class {{classname}}{{#parent}} extends {{{parent}}}{{/parent}}
   {{/deprecated}}
   {{#isContainer}}
   {{#openApiNullable}}
-  private {{>nullableAnnotation}}{{#isNullable}}{{>nullableDataTypeBeanValidation}} {{name}} = JsonNullable.<{{{datatypeWithEnum}}}>undefined();{{/isNullable}}{{^required}}{{^isNullable}}{{>nullableDataTypeBeanValidation}} {{name}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/isNullable}}{{/required}}{{#required}}{{^isNullable}}{{>nullableDataTypeBeanValidation}} {{name}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/isNullable}}{{/required}}
+  private {{>nullableAnnotation}}{{#isNullable}}{{>nullableDataType}} {{name}} = JsonNullable.<{{{datatypeWithEnum}}}>undefined();{{/isNullable}}{{^required}}{{^isNullable}}{{>nullableDataType}} {{name}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/isNullable}}{{/required}}{{#required}}{{^isNullable}}{{>nullableDataType}} {{name}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/isNullable}}{{/required}}
   {{/openApiNullable}}
   {{^openApiNullable}}
   private {{>nullableAnnotation}}{{>nullableDataType}} {{name}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};
@@ -93,7 +93,7 @@ public {{>sealed}}class {{classname}}{{#parent}} extends {{{parent}}}{{/parent}}
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   {{/isDateTime}}
   {{#openApiNullable}}
-  private {{>nullableAnnotation}}{{#isNullable}}{{>nullableDataTypeBeanValidation}} {{name}} = JsonNullable.<{{{datatypeWithEnum}}}>undefined();{{/isNullable}}{{^required}}{{^isNullable}}{{>nullableDataTypeBeanValidation}} {{name}}{{#useOptional}} = Optional.{{^defaultValue}}empty(){{/defaultValue}}{{#defaultValue}}of({{{.}}}){{/defaultValue}};{{/useOptional}}{{^useOptional}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/useOptional}}{{/isNullable}}{{/required}}{{^isNullable}}{{#required}}{{>nullableDataTypeBeanValidation}} {{name}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/required}}{{/isNullable}}
+  private {{>nullableAnnotation}}{{#isNullable}}{{>nullableDataType}} {{name}} = JsonNullable.<{{{datatypeWithEnum}}}>undefined();{{/isNullable}}{{^required}}{{^isNullable}}{{>nullableDataType}} {{name}}{{#useOptional}} = Optional.{{^defaultValue}}empty(){{/defaultValue}}{{#defaultValue}}of({{{.}}}){{/defaultValue}};{{/useOptional}}{{^useOptional}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/useOptional}}{{/isNullable}}{{/required}}{{^isNullable}}{{#required}}{{>nullableDataType}} {{name}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/required}}{{/isNullable}}
   {{/openApiNullable}}
   {{^openApiNullable}}
   private {{>nullableAnnotation}}{{>nullableDataType}} {{name}}{{#isNullable}} = null{{/isNullable}}{{^isNullable}}{{#defaultValue}} = {{{.}}}{{/defaultValue}}{{/isNullable}};
@@ -238,7 +238,7 @@ public {{>sealed}}class {{classname}}{{#parent}} extends {{{parent}}}{{/parent}}
   {{/deprecated}}
    */
   {{#vendorExtensions.x-extra-annotation}}
-  {{{vendorExtensions.x-extra-annotation}}}
+  {{{.}}}
   {{/vendorExtensions.x-extra-annotation}}
   {{#useBeanValidation}}
   {{>beanValidation}}{{! prevent indent}}

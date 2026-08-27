@@ -2717,9 +2717,13 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         }
 
         // See https://github.com/OpenAPITools/openapi-generator/pull/1729#issuecomment-449937728
-        Schema s = ModelUtils.getAdditionalProperties(schema);
+        Schema<?> s = ModelUtils.getAdditionalProperties(schema);
         // 's' may be null if 'additionalProperties: false' in the OpenAPI schema.
         if (s != null) {
+            Map<String, Object> extensions = s.getExtensions();
+            if (extensions != null && extensions.containsKey("x-extra-annotation")) {
+                codegenModel.getVendorExtensions().put("x-extra-additional-properties-annotation", extensions.get("x-extra-annotation"));
+            }
             codegenModel.additionalPropertiesType = getSchemaType(s);
             addImport(codegenModel, codegenModel.additionalPropertiesType);
         }

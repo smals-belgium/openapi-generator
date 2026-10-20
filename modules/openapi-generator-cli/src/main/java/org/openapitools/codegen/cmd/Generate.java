@@ -202,15 +202,6 @@ public class Generate extends OpenApiGeneratorCommand {
     private List<String> schemaMappings = new ArrayList<>();
 
     @Option(
-            name = {"--forced-generate-schemas"},
-            title = "forced generate schemas",
-            description = "comma-separated list of schema names that must be generated even when listed "
-                    + "in schemaMappings or importMappings. Example: MyEnum,OtherSchema."
-                    + " Use the wildcard '*' to force-generate all mapped schemas at once."
-                    + " You can also have multiple occurrences of this option.")
-    private List<String> forcedGenerateSchemas = new ArrayList<>();
-
-    @Option(
             name = {"--inline-schema-name-mappings"},
             title = "inline schema name mappings",
             description = "specifies mappings between the inline schema name and the new name in the format of inline_object_2=Cat,inline_object_5=Bird."
@@ -258,6 +249,15 @@ public class Generate extends OpenApiGeneratorCommand {
             description = "specifies mappings between the operation id name and the new name in the format of operation_id_name=AnotherName,operation_id_name2=OtherName2."
                     + " You can also have multiple occurrences of this option.")
     private List<String> operationIdNameMappings = new ArrayList<>();
+
+    @Option(
+            name = {"--inject-model-vendor-extensions"},
+            title = "inject model vendor extensions",
+            description = "injects vendor extensions into model classes or their properties."
+                    + " Class-level format: ModelName.x-extension-name=value."
+                    + " Property-level format: ModelName.propertyBaseName.x-extension-name=value."
+                    + " You can also have multiple occurrences of this option.")
+    private List<String> injectModelVendorExtensions = new ArrayList<>();
 
     @Option(
             name = {"--openapi-normalizer"},
@@ -598,7 +598,6 @@ public class Generate extends OpenApiGeneratorCommand {
         applyInstantiationTypesKvpList(instantiationTypes, configurator);
         applyImportMappingsKvpList(importMappings, configurator);
         applySchemaMappingsKvpList(schemaMappings, configurator);
-        applyForcedGenerateSchemasKvpList(forcedGenerateSchemas, configurator);
         applyInlineSchemaNameMappingsKvpList(inlineSchemaNameMappings, configurator);
         applyInlineSchemaOptionsKvpList(inlineSchemaOptions, configurator);
         applyNameMappingsKvpList(nameMappings, configurator);
@@ -606,6 +605,7 @@ public class Generate extends OpenApiGeneratorCommand {
         applyModelNameMappingsKvpList(modelNameMappings, configurator);
         applyEnumNameMappingsKvpList(enumNameMappings, configurator);
         applyOperationIdNameMappingsKvpList(operationIdNameMappings, configurator);
+        applyInjectModelVendorExtensionsKvpList(injectModelVendorExtensions, configurator);
         applyOpenapiNormalizerKvpList(openapiNormalizer, configurator);
         applyTypeMappingsKvpList(typeMappings, configurator);
         applyAdditionalPropertiesKvpList(additionalProperties, configurator);

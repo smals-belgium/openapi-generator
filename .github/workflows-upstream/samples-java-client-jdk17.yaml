@@ -11,15 +11,18 @@ on:
       - samples/client/petstore/java/apache-httpclient-jackson3/**
       - samples/client/petstore/java/native-jackson3-jspecify/**
       - samples/client/petstore/java/restclient-springBoot4-jackson3-jspecify/**
+      - samples/client/petstore/java/restclient-springBoot4-jackson3-jspecify-openapiNullable/**
       - samples/client/others/java/webclient-sealedInterface/**
       - samples/client/others/java/webclient-sealedInterface_3_1/**
       - samples/client/petstore/java/webclient-useSingleRequestParameter/**
       - samples/client/others/java/restclient-enum-in-multipart/**
       - samples/client/others/java/restclient-sealedInterface/**
+      - samples/client/others/java/restclient-jackson-default-impl/**
       - samples/client/others/java/restclient-useAbstractionForFiles/**
       - samples/client/petstore/java/jersey3-oneOf/**
       - samples/client/petstore/java/jersey3-jackson3/**
       - samples/client/petstore/java/microprofile-oneof-sealed/**
+      - samples/client/petstore/java/rest-assured-jackson3/**
   pull_request:
     paths:
       - samples/client/petstore/java/resttemplate-jakarta/**
@@ -30,15 +33,18 @@ on:
       - samples/client/petstore/java/apache-httpclient-jackson3/**
       - samples/client/petstore/java/native-jackson3-jspecify/**
       - samples/client/petstore/java/restclient-springBoot4-jackson3-jspecify/**
+      - samples/client/petstore/java/restclient-springBoot4-jackson3-jspecify-openapiNullable/**
       - samples/client/others/java/webclient-sealedInterface/**
       - samples/client/others/java/webclient-sealedInterface_3_1/**
       - samples/client/petstore/java/webclient-useSingleRequestParameter/**
       - samples/client/others/java/restclient-enum-in-multipart/**
       - samples/client/others/java/restclient-sealedInterface/**
+      - samples/client/others/java/restclient-jackson-default-impl/**
       - samples/client/others/java/restclient-useAbstractionForFiles/**
       - samples/client/petstore/java/jersey3-oneOf/**
       - samples/client/petstore/java/jersey3-jackson3/**
       - samples/client/petstore/java/microprofile-oneof-sealed/**
+      - samples/client/petstore/java/rest-assured-jackson3/**
 jobs:
   build:
     name: Build Java Client JDK17
@@ -57,6 +63,7 @@ jobs:
           - samples/client/petstore/java/restclient-springBoot4-jackson2
           - samples/client/petstore/java/restclient-springBoot4-jackson3
           - samples/client/petstore/java/restclient-springBoot4-jackson3-jspecify
+          - samples/client/petstore/java/restclient-springBoot4-jackson3-jspecify-openapiNullable
           - samples/client/petstore/java/native-jackson3-jspecify
           - samples/client/petstore/java/restclient-swagger2
           - samples/client/petstore/java/restclient-useSingleRequestParameter
@@ -69,13 +76,15 @@ jobs:
           - samples/client/petstore/java/webclient-useSingleRequestParameter
           - samples/client/others/java/restclient-enum-in-multipart
           - samples/client/others/java/restclient-sealedInterface
+          - samples/client/others/java/restclient-jackson-default-impl
           - samples/client/others/java/restclient-useAbstractionForFiles
           - samples/client/petstore/java/jersey3-oneOf
           - samples/client/petstore/java/jersey3-jackson3
           - samples/client/petstore/java/microprofile-oneof-sealed
+          - samples/client/petstore/java/rest-assured-jackson3
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: 17

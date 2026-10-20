@@ -43,6 +43,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static org.openapitools.codegen.utils.ModelUtils.hasAnyOf;
+import static org.openapitools.codegen.utils.ModelUtils.hasOneOf;
 import static org.openapitools.codegen.utils.StringUtils.camelize;
 import static org.openapitools.codegen.utils.StringUtils.underscore;
 
@@ -118,6 +120,7 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
     @Setter protected boolean useIndependentImplicitClients = false;
     @Setter protected boolean compatibleWithPythonLegacy = false;
 
+    private String sourceFolder;
     private String testFolder;
 
     public PythonClientCodegen() {
@@ -150,6 +153,17 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
         generatorMetadata = GeneratorMetadata.newBuilder(generatorMetadata)
                 .stability(Stability.STABLE)
                 .build();
+
+        // fields with these names would clash with the helper methods generated on every
+        // model (a field named from_dict shadows the classmethod) or with pydantic's
+        // model_* namespace (a field named model_config is clobbered by the ConfigDict
+        // assignment and silently dropped), so mangle them like any other reserved word
+        reservedWords.addAll(GENERATED_MODEL_MEMBER_NAMES);
+        for (String memberName : PYDANTIC_BASE_MODEL_MEMBER_NAMES) {
+            if (memberName.startsWith("model_")) {
+                reservedWords.add(memberName);
+            }
+        }
 
         // clear import mapping (from default generator) as python does not use it
         // at the moment
@@ -185,6 +199,7 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
         modelDocTemplateFiles.put("model_doc.mustache", ".md");
         apiDocTemplateFiles.put("api_doc.mustache", ".md");
 
+        sourceFolder = "";
         testFolder = "test";
 
         // default HIDE_GENERATION_TIMESTAMP to true
@@ -214,7 +229,8 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
         cliOptions.add(new CliOption(POETRY1_FALLBACK, "Fallback to formatting pyproject.toml to Poetry 1.x format."));
         cliOptions.add(new CliOption(LAZY_IMPORTS, "Enable lazy imports.").defaultValue(Boolean.FALSE.toString()));
         cliOptions.add(new CliOption(BUILD_SYSTEM, "Build system to use in pyproject.toml (setuptools, hatchling).").defaultValue("setuptools"));
-        cliOptions.add(CliOption.newBoolean(SUPPORT_HTTPX_SYNC, "Generate synchronous '_sync' variants of each API method (httpx library only). " +
+        cliOptions.add(new CliOption(CodegenConstants.SOURCE_FOLDER, "directory for generated python source code; 'src' for _src layout_, unset (or '.') for _flat layout_."));
+        cliOptions.add(CliOption.newBoolean(SUPPORT_HTTPX_SYNC, "Generate synchronous '_sync' variants of each API method (httpx and httpx2 libraries only). " +
                 "Each '_sync' method simply calls the corresponding async method and waits for its completion, " +
                 "so both synchronous and asynchronous methods are available from the same API class.").defaultValue(Boolean.FALSE.toString()));
         cliOptions.add(CliOption.newBoolean(USE_INDEPENDENT_IMPLICIT_CLIENTS,
@@ -233,9 +249,9 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
 
         supportedLibraries.put("urllib3", "urllib3-based client");
         supportedLibraries.put("asyncio", "asyncio-based client");
-        supportedLibraries.put("tornado", "tornado-based client (deprecated)");
         supportedLibraries.put("httpx", "httpx-based client");
-        CliOption libraryOption = new CliOption(CodegenConstants.LIBRARY, "library template (sub-template) to use: asyncio, tornado (deprecated), urllib3, httpx");
+        supportedLibraries.put("httpx2", "httpx2-based client");
+        CliOption libraryOption = new CliOption(CodegenConstants.LIBRARY, "library template (sub-template) to use: asyncio, urllib3, httpx, httpx2");
         libraryOption.setDefault(DEFAULT_LIBRARY);
         cliOptions.add(libraryOption);
         setLibrary(DEFAULT_LIBRARY);
@@ -259,6 +275,9 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
         this.setLegacyDiscriminatorBehavior(false);
 
         super.processOpts();
+        if (additionalProperties.containsKey(POETRY1_FALLBACK)) {
+            convertPropertyToBooleanAndWriteBack(POETRY1_FALLBACK);
+        }
 
         // map to Dot instead of Period
         specialCharReplacements.put(".", "Dot");
@@ -280,6 +299,9 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
         if (additionalProperties.containsKey(CodegenConstants.PACKAGE_VERSION)) {
             setPackageVersion((String) additionalProperties.get(CodegenConstants.PACKAGE_VERSION));
         }
+        if (additionalProperties.containsKey(CodegenConstants.SOURCE_FOLDER)) {
+            this.sourceFolder = (String) additionalProperties.get(CodegenConstants.SOURCE_FOLDER);
+        }
 
         additionalProperties.put(CodegenConstants.PROJECT_NAME, projectName);
         additionalProperties.put(CodegenConstants.PACKAGE_NAME, packageName);
@@ -298,8 +320,8 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
             // tests in <package>/test
             testFolder = packagePath() + File.separatorChar + testFolder;
             // api/model docs in <package>/docs
-            apiDocPath = packagePath() + "/" + apiDocPath;
-            modelDocPath = packagePath() + "/" + modelDocPath;
+            apiDocPath = packagePath() + File.separatorChar + apiDocPath;
+            modelDocPath = packagePath() + File.separatorChar + modelDocPath;
         }
         // make api and model doc path available in mustache template
         additionalProperties.put("apiDocPath", apiDocPath);
@@ -376,8 +398,9 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
                     USE_INDEPENDENT_IMPLICIT_CLIENTS, useIndependentImplicitClients);
         }
 
-        String modelPath = packagePath() + File.separatorChar + modelPackage.replace('.', File.separatorChar);
-        String apiPath = packagePath() + File.separatorChar + apiPackage.replace('.', File.separatorChar);
+        String srcPath = sourceFolder.isEmpty() ? packagePath() : (sourceFolder + File.separatorChar + packagePath());
+        String modelPath = srcPath + File.separatorChar + modelPackage.replace('.', File.separatorChar);
+        String apiPath = srcPath + File.separatorChar + apiPackage.replace('.', File.separatorChar);
 
         String readmePath = "README.md";
         String readmeTemplate = "README.mustache";
@@ -400,10 +423,10 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
             supportingFiles.add(new SupportingFile("gitlab-ci.mustache", "", ".gitlab-ci.yml"));
             supportingFiles.add(new SupportingFile("setup.mustache", "", "setup.py"));
             supportingFiles.add(new SupportingFile("pyproject.mustache", "", "pyproject.toml"));
-            supportingFiles.add(new SupportingFile("py.typed.mustache", packagePath(), "py.typed"));
+            supportingFiles.add(new SupportingFile("py.typed.mustache", srcPath, "py.typed"));
         }
-        supportingFiles.add(new SupportingFile("configuration.mustache", packagePath(), "configuration.py"));
-        supportingFiles.add(new SupportingFile("__init__package.mustache", packagePath(), "__init__.py"));
+        supportingFiles.add(new SupportingFile("configuration.mustache", srcPath, "configuration.py"));
+        supportingFiles.add(new SupportingFile("__init__package.mustache", srcPath, "__init__.py"));
         supportingFiles.add(new SupportingFile("__init__model.mustache", modelPath, "__init__.py"));
         supportingFiles.add(new SupportingFile("__init__api.mustache", apiPath, "__init__.py"));
         // Generate the 'signing.py' module, but only if the 'HTTP signature' security scheme is specified in the OAS.
@@ -411,12 +434,12 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
                 (openAPI.getComponents() != null ? openAPI.getComponents().getSecuritySchemes() : null) : null;
         List<CodegenSecurity> authMethods = fromSecurity(securitySchemeMap);
         if (ProcessUtils.hasHttpSignatureMethods(authMethods)) {
-            supportingFiles.add(new SupportingFile("signing.mustache", packagePath(), "signing.py"));
+            supportingFiles.add(new SupportingFile("signing.mustache", srcPath, "signing.py"));
         }
 
         // If the package name consists of dots(openapi.client), then we need to create the directory structure like openapi/client with __init__ files.
         String[] packageNameSplits = packageName.split("\\.");
-        String currentPackagePath = "";
+        String currentPackagePath = sourceFolder.isEmpty() ? "" : (sourceFolder + File.separatorChar);
         for (int i = 0; i < packageNameSplits.length - 1; i++) {
             if (i > 0) {
                 currentPackagePath = currentPackagePath + File.separatorChar;
@@ -425,47 +448,52 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
             supportingFiles.add(new SupportingFile("__init__.mustache", currentPackagePath, "__init__.py"));
         }
 
-        supportingFiles.add(new SupportingFile("exceptions.mustache", packagePath(), "exceptions.py"));
+        supportingFiles.add(new SupportingFile("exceptions.mustache", srcPath, "exceptions.py"));
 
         if (Boolean.FALSE.equals(excludeTests)) {
             supportingFiles.add(new SupportingFile("__init__.mustache", testFolder, "__init__.py"));
         }
 
-        supportingFiles.add(new SupportingFile("api_client.mustache", packagePath(), "api_client.py"));
-        supportingFiles.add(new SupportingFile("api_response.mustache", packagePath(), "api_response.py"));
+        supportingFiles.add(new SupportingFile("api_client.mustache", srcPath, "api_client.py"));
+        supportingFiles.add(new SupportingFile("api_response.mustache", srcPath, "api_response.py"));
 
         if ("asyncio".equals(getLibrary())) {
-            supportingFiles.add(new SupportingFile("asyncio/rest.mustache", packagePath(), "rest.py"));
+            supportingFiles.add(new SupportingFile("asyncio/rest.mustache", srcPath, "rest.py"));
             additionalProperties.put("async", "true");
             additionalProperties.put("asyncio", "true");
-        } else if ("tornado".equals(getLibrary())) {
-            supportingFiles.add(new SupportingFile("tornado/rest.mustache", packagePath(), "rest.py"));
-            additionalProperties.put("tornado", "true");
-        } else if ("httpx".equals(getLibrary())) {
-            supportingFiles.add(new SupportingFile("httpx/rest.mustache", packagePath(), "rest.py"));
+        } else if (isHttpxLibrary()) {
+            supportingFiles.add(new SupportingFile("httpx/rest.mustache", srcPath, "rest.py"));
             additionalProperties.put("async", "true");
-            additionalProperties.put("httpx", "true");
+            additionalProperties.put(getLibrary(), "true");
+            additionalProperties.put("httpxLibrary", true);
+            additionalProperties.put("httpxModule", getLibrary());
             if (Boolean.parseBoolean(String.valueOf(additionalProperties.get(SUPPORT_HTTPX_SYNC)))) {
                 // generate synchronous '_sync' method variants alongside the async ones
                 additionalProperties.put(SUPPORT_HTTPX_SYNC, true);
-                supportingFiles.add(new SupportingFile("httpx/sync_helper.mustache", packagePath(), "sync_helper.py"));
+                supportingFiles.add(new SupportingFile("httpx/sync_helper.mustache", srcPath, "sync_helper.py"));
             } else {
                 additionalProperties.remove(SUPPORT_HTTPX_SYNC);
             }
         } else {
-            supportingFiles.add(new SupportingFile("rest.mustache", packagePath(), "rest.py"));
+            supportingFiles.add(new SupportingFile("rest.mustache", srcPath, "rest.py"));
         }
 
-        // 'supportHttpxSync' only makes sense for the (async) httpx library
-        if (!"httpx".equals(getLibrary())) {
+        // 'supportHttpxSync' only makes sense for the (async) httpx and httpx2 libraries
+        if (!isHttpxLibrary()) {
             if (Boolean.parseBoolean(String.valueOf(additionalProperties.get(SUPPORT_HTTPX_SYNC)))) {
-                LOGGER.warn("'{}' is only supported with the 'httpx' library and will be ignored.", SUPPORT_HTTPX_SYNC);
+                LOGGER.warn("'{}' is only supported with the 'httpx' and 'httpx2' libraries and will be ignored.", SUPPORT_HTTPX_SYNC);
             }
             additionalProperties.remove(SUPPORT_HTTPX_SYNC);
         }
 
         modelPackage = this.packageName + "." + modelPackage;
         apiPackage = this.packageName + "." + apiPackage;
+
+        // the template bundles apply additionalProperties on top of the values derived here,
+        // so the fully qualified names must be written back or user-supplied ones would shadow
+        // them and produce imports missing the package prefix (#3285)
+        additionalProperties.put(CodegenConstants.MODEL_PACKAGE, modelPackage);
+        additionalProperties.put(CodegenConstants.API_PACKAGE, apiPackage);
     }
 
     public boolean getUseOneOfDiscriminatorLookup() {
@@ -524,12 +552,26 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
 
     @Override
     public String apiFileFolder() {
-        return outputFolder + File.separatorChar + apiPackage().replace('.', File.separatorChar);
+        StringBuffer sb = new StringBuffer(outputFolder);
+        sb.append(File.separatorChar);
+        if (!sourceFolder.isEmpty()) {
+            sb.append(sourceFolder);
+            sb.append(File.separatorChar);
+        }
+        sb.append(apiPackage().replace('.', File.separatorChar));
+        return sb.toString();
     }
 
     @Override
     public String modelFileFolder() {
-        return outputFolder + File.separatorChar + modelPackage().replace('.', File.separatorChar);
+        StringBuffer sb = new StringBuffer(outputFolder);
+        sb.append(File.separatorChar);
+        if (!sourceFolder.isEmpty()) {
+            sb.append(sourceFolder);
+            sb.append(File.separatorChar);
+        }
+        sb.append(modelPackage().replace('.', File.separatorChar));
+        return sb.toString();
     }
 
     @Override
@@ -577,10 +619,21 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
     @Override
     public OperationsMap postProcessOperationsWithModels(
             OperationsMap objs, List<ModelMap> allModels) {
+        List<CodegenOperation> operations = objs.getOperations().getOperation();
+
         if (useIndependentImplicitClients) {
-            renameIndependentClientOperationMembers(
-                    objs.getOperations().getOperation());
+            renameIndependentClientOperationMembers(operations);
         }
+
+        boolean hasJsonHeader = operations.stream()
+                .flatMap(operation -> operation.headerParams.stream())
+                .anyMatch(parameter ->
+                        parameter.vendorExtensions.containsKey("x-python-json-header"));
+
+        if (hasJsonHeader) {
+            objs.put("x-python-has-json-header", true);
+        }
+
         return super.postProcessOperationsWithModels(objs, allModels);
     }
 
@@ -620,7 +673,7 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
 
     private Set<String> independentClientApiMembers() {
         Set<String> members = new HashSet<>(INDEPENDENT_API_MEMBER_NAMES);
-        boolean async = "asyncio".equals(getLibrary()) || "httpx".equals(getLibrary());
+        boolean async = "asyncio".equals(getLibrary()) || isHttpxLibrary();
         members.addAll(async
                 ? ASYNC_API_LIFECYCLE_METHODS
                 : SYNC_API_LIFECYCLE_METHODS);
@@ -650,8 +703,12 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
         return compatibleWithPythonLegacy && DEFAULT_LIBRARY.equals(getLibrary());
     }
 
+    private boolean isHttpxLibrary() {
+        return "httpx".equals(getLibrary()) || "httpx2".equals(getLibrary());
+    }
+
     private boolean supportsHttpxSync() {
-        return "httpx".equals(getLibrary())
+        return isHttpxLibrary()
                 && Boolean.parseBoolean(String.valueOf(
                         additionalProperties.get(SUPPORT_HTTPX_SYNC)));
     }
@@ -661,7 +718,7 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
         for (ModelsMap modelsMap : objs.values()) {
             for (ModelMap modelMap : modelsMap.getModels()) {
                 CodegenModel model = modelMap.getModel();
-                if (model == null || !model.oneOf.isEmpty() || !model.anyOf.isEmpty()) {
+                if (model == null || hasOneOf(model) || hasAnyOf(model)) {
                     continue;
                 }
                 List<CodegenProperty> generatedProperties = generatedProperties(model);
@@ -975,6 +1032,11 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
     @Override
     public void postProcessParameter(CodegenParameter parameter) {
         super.postProcessParameter(parameter);
+
+        if (parameter.isHeaderParam && isJsonMimeType(parameter.contentType)) {
+            parameter.vendorExtensions.put("x-python-json-header", true);
+        }
+
         // Only operation signatures gain this control argument. Keep model
         // field naming independent of the selected library.
         if (usesLegacyApiCompatibility()
@@ -986,7 +1048,21 @@ public class PythonClientCodegen extends AbstractPythonCodegen implements Codege
     @Override
     public void postProcessModelProperty(CodegenModel model, CodegenProperty property) {
         super.postProcessModelProperty(model, property);
-        if (!model.oneOf.isEmpty() || !model.anyOf.isEmpty()) {
+
+        if (property.getComposedSchemas() != null
+                && property.getComposedSchemas().getNot() != null) {
+            CodegenProperty notProperty = property.getComposedSchemas().getNot();
+            if (notProperty.isEnum
+                    && notProperty.isString
+                    && notProperty.allowableValues != null
+                    && notProperty.allowableValues.get("values") != null) {
+                property.vendorExtensions.put(
+                        "x-python-not-string-enum-values",
+                        notProperty.allowableValues.get("values"));
+            }
+        }
+
+        if (hasOneOf(model) || hasAnyOf(model)) {
             return;
         }
 

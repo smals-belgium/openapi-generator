@@ -17,11 +17,16 @@
 
 package org.openapitools.codegen.plugin;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.core.util.Json;
+import io.swagger.v3.core.util.Json31;
 import io.swagger.v3.core.util.Yaml;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.SpecVersion;
 import io.swagger.v3.parser.OpenAPIResolver;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.AuthorizationValue;
@@ -391,13 +396,6 @@ public class CodeGenMojo extends AbstractMojo {
      */
     @Parameter(name = "schemaMappings", property = "openapi.generator.maven.plugin.schemaMappings")
     private List<String> schemaMappings;
-
-    /**
-     * A list of schema names that must be generated even when listed in schemaMappings or importMappings.
-     * Use {@code <param>*</param>} as a wildcard to force-generate all mapped schemas at once.
-     */
-    @Parameter(name = "forcedGenerateSchemas", property = "openapi.generator.maven.plugin.forcedGenerateSchemas")
-    private List<String> forcedGenerateSchemas;
 
     /**
      * A map of inline scheme names and the new names
@@ -921,13 +919,6 @@ public class CodeGenMojo extends AbstractMojo {
                             configurator);
                 }
 
-                // Retained for backwards-compatibility with configOptions -> forced-generate-schemas
-                if (forcedGenerateSchemas == null && configOptions.containsKey("forced-generate-schemas")) {
-                    applyForcedGenerateSchemasKvpList(
-                            Arrays.asList(configOptions.get("forced-generate-schemas").toString().split(",")),
-                            configurator);
-                }
-
                 // Retained for backwards-compatibility with configOptions -> inline-schema-name-mappings
                 if (inlineSchemaNameMappings == null && configOptions.containsKey("inline-schema-name-mappings")) {
                     applyInlineSchemaNameMappingsKvp(configOptions.get("inline-schema-name-mappings").toString(),
@@ -993,11 +984,6 @@ public class CodeGenMojo extends AbstractMojo {
             // Apply Schema Mappings
             if (schemaMappings != null && (configOptions == null || !configOptions.containsKey("schema-mappings"))) {
                 applySchemaMappingsKvpList(schemaMappings, configurator);
-            }
-
-            // Apply Forced Generate Schemas
-            if (forcedGenerateSchemas != null && (configOptions == null || !configOptions.containsKey("forced-generate-schemas"))) {
-                applyForcedGenerateSchemasKvpList(forcedGenerateSchemas, configurator);
             }
 
             // Apply Inline Schema Name Mappings
@@ -1155,10 +1141,22 @@ public class CodeGenMojo extends AbstractMojo {
         final URL remoteUrl = inputSpecRemoteUrl();
         final List<AuthorizationValue> authorizationValues = AuthParser.parse(this.auth);
 
-        return Hashing.sha256().hashBytes(
-                new OpenAPIParser().readLocation(remoteUrl == null ? inputSpec : remoteUrl.toString(), authorizationValues, parseOptions)
-                        .getOpenAPI().toString().getBytes(StandardCharsets.UTF_8)
-        ).toString();
+        final OpenAPI spec = new OpenAPIParser()
+                .readLocation(remoteUrl == null ? inputSpec : remoteUrl.toString(), authorizationValues, parseOptions)
+                .getOpenAPI();
+
+        // If the specification is not parsable, a unique string is returned so the subsequent steps are not skipped.
+        // It is up to them to parse it again and deal with the error.
+        if (spec == null)
+            return "INVALID-HASH-" + System.currentTimeMillis();
+
+        final ObjectMapper mapper = spec.getSpecVersion() == SpecVersion.V30 ? Json.mapper() : Json31.mapper();
+
+        try {
+            return Hashing.sha256().hashBytes(mapper.writeValueAsBytes(spec)).toString();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

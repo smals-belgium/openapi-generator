@@ -92,7 +92,6 @@ interface OpenApiWorkParameters : WorkParameters {
     val instantiationTypes: MapProperty<String, String>
     val importMappings: MapProperty<String, String>
     val schemaMappings: MapProperty<String, String>
-    val forcedGenerateSchemas: ListProperty<String>
     val inlineSchemaNameMappings: MapProperty<String, String>
     val inlineSchemaOptions: MapProperty<String, String>
     val nameMappings: MapProperty<String, String>
@@ -215,7 +214,6 @@ abstract class OpenApiWorkAction : WorkAction<OpenApiWorkParameters> {
             params.instantiationTypes.orNull?.forEach { (k, v) -> configurator.addInstantiationType(k, v) }
             params.importMappings.orNull?.forEach { (k, v) -> configurator.addImportMapping(k, v) }
             params.schemaMappings.orNull?.forEach { (k, v) -> configurator.addSchemaMapping(k, v) }
-            params.forcedGenerateSchemas.orNull?.forEach { configurator.addForcedGenerateSchema(it) }
             params.inlineSchemaNameMappings.orNull?.forEach { (k, v) -> configurator.addInlineSchemaNameMapping(k, v) }
             params.inlineSchemaOptions.orNull?.forEach { (k, v) -> configurator.addInlineSchemaOption(k, v) }
             params.nameMappings.orNull?.forEach { (k, v) -> configurator.addNameMapping(k, v) }
@@ -248,7 +246,10 @@ abstract class OpenApiWorkAction : WorkAction<OpenApiWorkParameters> {
             DefaultGenerator(isDryRun).opts(clientOptInput).generate()
 
             params.outputDir.orNull?.let { dir ->
-                logger.lifecycle("Successfully generated code to ${dir.asFile.absolutePath}")
+                val quietMode = params.quiet.getOrElse(false)
+                if (!quietMode) {
+                    logger.lifecycle("Successfully generated code to ${dir.asFile.absolutePath}")
+                }
             }
 
         } catch (e: Exception) {
@@ -322,6 +323,17 @@ abstract class GenerateTask : DefaultTask() {
     abstract val maxWorkerHeapSize: Property<String>
 
     /**
+     * Additional classpath entries forwarded to the code generation worker in both `process` and
+     * `classloader` [workerIsolation] modes. Populated by default from the `openApiGeneratorExtra`
+     * configuration, plus any files/directories added via the `openApiGenerate` extension's
+     * `generatorClasspath` property. Required for custom classes referenced by name in generator
+     * options (e.g. a custom `NORMALIZER_CLASS`) to be resolvable by the worker.
+     */
+    @get:Optional
+    @get:Classpath
+    abstract val generatorClasspath: ConfigurableFileCollection
+
+    /**
      * The verbosity of generation
      */
     @get:Optional
@@ -355,11 +367,35 @@ abstract class GenerateTask : DefaultTask() {
      * Declaring this directory tells Gradle to track all files inside it for up-to-date checks.
      * Without it, changes to `$ref`-referenced schemas will not trigger re-generation because
      * Gradle only watches [inputSpec] by default.
+     *
+     * For schemas that aren't all under one directory (individual files, multiple directories, or a
+     * filtered subset of a directory), use [schemaLocations] instead, which accepts any combination of
+     * files, directories, and file trees.
      */
     @get:Optional
     @get:InputDirectory
-    @get:PathSensitive(PathSensitivity.ABSOLUTE)
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val schemaLocation: DirectoryProperty
+
+    /**
+     * Optional collection of additional schema files/directories referenced via `$ref` in the input
+     * specification, tracked for up-to-date checks.
+     *
+     * Unlike [schemaLocation], which only accepts a single whole directory, this property is a
+     * [ConfigurableFileCollection] and can be populated with any combination of individual files,
+     * multiple directories, or filtered file trees, e.g.:
+     * ```kotlin
+     * schemaLocations.from("schemas/user.yaml", "schemas/order.yaml")
+     * schemaLocations.from(fileTree("schemas") { include("*.yaml") })
+     * ```
+     *
+     * As with [schemaLocation], this only affects Gradle's up-to-date/cache tracking; it does not
+     * change how `$ref`s are resolved at generation time.
+     */
+    @get:InputFiles
+    @get:Optional
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    val schemaLocations: ConfigurableFileCollection = project.objects.fileCollection()
 
     /**
      * The output target directory into which code will be generated.
@@ -627,13 +663,6 @@ abstract class GenerateTask : DefaultTask() {
     abstract val schemaMappings: MapProperty<String, String>
 
     /**
-     * Specifies schema names that must be generated even when listed in schemaMappings or importMappings.
-     */
-    @get:Optional
-    @get:Input
-    abstract val forcedGenerateSchemas: ListProperty<String>
-
-    /**
      * Specifies mappings between the inline scheme name and the new name
      */
     @get:Optional
@@ -693,6 +722,11 @@ abstract class GenerateTask : DefaultTask() {
      * Example rules: `REFACTOR_ALLOF_WITH_PROPERTIES_ONLY=true`,
      * `REMOVE_ANYOF_ONEOF_AND_KEEP_PROPERTIES_ONLY=true`. See the OpenAPI Generator docs for
      * the full list of normalizer rules.
+     *
+     * For the `NORMALIZER_CLASS` rule (a custom class extending `OpenAPINormalizer`), the class
+     * must be added to [generatorClasspath] (or the `openApiGeneratorExtra` dependency
+     * configuration) so it is resolvable by the code generation worker in both `workerIsolation`
+     * modes; otherwise it will fail to load with a `ClassNotFoundException`.
      */
     @get:Optional
     @get:Input
@@ -1049,7 +1083,10 @@ abstract class GenerateTask : DefaultTask() {
         cleanupOutput.orNull?.let { cleanup ->
             if (cleanup && outputDir.isPresent) {
                 fs.delete { delete(outputDir) }
-                logger.lifecycle("Cleaned up output directory ${outputDir.get().asFile.path} before code generation.")
+                val quietMode = quiet.getOrElse(false)
+                if (!quietMode) {
+                    logger.lifecycle("Cleaned up output directory ${outputDir.get().asFile.path} before code generation.")
+                }
             }
         }
 
@@ -1148,6 +1185,7 @@ abstract class GenerateTask : DefaultTask() {
                     )
                 }
                 workerExecutor.processIsolation {
+                    classpath.from(generatorClasspath)
                     maxWorkerHeapSize.orNull?.let { forkOptions.maxHeapSize = it }
                 }
             }
@@ -1160,7 +1198,9 @@ abstract class GenerateTask : DefaultTask() {
                                 "consider workerIsolation = \"process\" if you hit metaspace pressure)"
                     )
                 }
-                workerExecutor.classLoaderIsolation()
+                workerExecutor.classLoaderIsolation {
+                    classpath.from(generatorClasspath)
+                }
             }
 
             else -> throw GradleException("Invalid workerIsolation mode: $isolation. Supported values are 'process' and 'classloader'.")
@@ -1212,7 +1252,6 @@ abstract class GenerateTask : DefaultTask() {
                 parameters.instantiationTypes.set(instantiationTypes)
                 parameters.importMappings.set(importMappings)
                 parameters.schemaMappings.set(schemaMappings)
-                parameters.forcedGenerateSchemas.set(forcedGenerateSchemas)
                 parameters.inlineSchemaNameMappings.set(inlineSchemaNameMappings)
                 parameters.inlineSchemaOptions.set(inlineSchemaOptions)
                 parameters.nameMappings.set(nameMappings)
@@ -1341,5 +1380,18 @@ abstract class GenerateTask : DefaultTask() {
      */
     fun setSchemaLocationAsString(path: String) {
         schemaLocation.set(layout.projectDirectory.dir(path))
+    }
+
+    /**
+     * Groovy-compatible helper for schemaLocations property.
+     *
+     * [schemaLocations] is a [ConfigurableFileCollection], which does not support Groovy `=`
+     * assignment (it isn't a [org.gradle.api.provider.Property]). Use this method instead:
+     * ```groovy
+     * setSchemaLocationsAsStrings("schemas/user.yaml", "schemas/order.yaml")
+     * ```
+     */
+    fun setSchemaLocationsAsStrings(vararg paths: String) {
+        schemaLocations.setFrom(paths.map { layout.projectDirectory.asFile.resolve(it) })
     }
 }

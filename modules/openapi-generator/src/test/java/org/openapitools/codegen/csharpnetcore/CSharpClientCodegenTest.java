@@ -17,9 +17,15 @@
 package org.openapitools.codegen.csharpnetcore;
 
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.media.*;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.openapitools.codegen.*;
 import org.openapitools.codegen.languages.CSharpClientCodegen;
+import org.openapitools.codegen.languages.JavaCXFClientCodegen;
+import org.openapitools.codegen.model.OperationMap;
+import org.openapitools.codegen.model.OperationsMap;
 import org.openapitools.codegen.utils.ModelUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -28,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -41,11 +48,46 @@ import static org.openapitools.codegen.TestUtils.assertFileNotContains;
 public class CSharpClientCodegenTest {
 
     @Test
-    public void testGenericHostNullableEnumDeserializesPresentNull() throws IOException {
-        // For a required + nullable enum, the generated generichost JsonConverter must assign
-        // the backing Option even when the JSON value is null; otherwise the required-property
-        // check rejects a present-but-null value with "Property is required". Non-nullable enums
-        // keep the original non-null guard, so their generated output is unchanged.
+    public void testGenericHostOneOfConstructorsRespectApiVisibility() throws IOException {
+        Map<String, File> publicModels = generateIssue23046Models(false);
+        File publicModel = publicModels.get("DynamicMetadataValue");
+        assertFileContains(publicModel.toPath(),
+                "public DynamicMetadataValue(string @string)",
+                "public DynamicMetadataValue(decimal @decimal)",
+                "public DynamicMetadataValue(bool @bool)",
+                "public DynamicMetadataValue(DateTime dateTime)");
+        assertFileNotContains(publicModel.toPath(), "internal DynamicMetadataValue(");
+        assertFileContains(publicModels.get("ResponseOnlyValue").toPath(),
+                "internal ResponseOnlyValue(string @string)",
+                "internal ResponseOnlyValue(int @int)");
+        assertFileNotContains(publicModels.get("ResponseOnlyValue").toPath(), "public ResponseOnlyValue(");
+        assertFileContains(publicModels.get("QueryParameterValue").toPath(),
+                "public QueryParameterValue(string @string)",
+                "public QueryParameterValue(int @int)");
+        assertFileNotContains(publicModels.get("QueryParameterValue").toPath(), "internal QueryParameterValue(");
+        assertFileContains(publicModels.get("ReadOnlyValue").toPath(),
+                "internal ReadOnlyValue(string @string)",
+                "internal ReadOnlyValue(int @int)");
+        assertFileNotContains(publicModels.get("ReadOnlyValue").toPath(), "public ReadOnlyValue(");
+        assertFileContains(publicModels.get("ForbiddenValue").toPath(),
+                "internal ForbiddenValue(string @string)",
+                "internal ForbiddenValue(int @int)");
+        assertFileNotContains(publicModels.get("ForbiddenValue").toPath(), "public ForbiddenValue(");
+
+        File internalModel = generateIssue23046Models(true).get("DynamicMetadataValue");
+        assertFileContains(internalModel.toPath(), 
+                "internal DynamicMetadataValue(string @string)",
+                "internal DynamicMetadataValue(decimal @decimal)",
+                "internal DynamicMetadataValue(bool @bool)",
+                "internal DynamicMetadataValue(DateTime dateTime)");
+        assertFileNotContains(internalModel.toPath(), "public DynamicMetadataValue(");
+    }
+
+    @Test
+    public void testGenericHostInnerStringEnumUnknownHandlingPreservesNullBehavior() throws IOException {
+        // Unknown enum values must throw for both nullable and non-nullable properties.
+        // Preserve the existing null-token behavior: nullable properties record a present
+        // null, while non-nullable string properties retain their existing null guard.
         File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
         output.deleteOnExit();
         final OpenAPI openAPI = TestUtils.parseFlattenSpec(
@@ -65,12 +107,23 @@ public class CSharpClientCodegenTest {
         File requiredClass = files.get(Paths.get(output.getAbsolutePath(),
                 "src", "Org.OpenAPITools", "Model", "RequiredClass.cs").toString());
         assertNotNull(requiredClass);
-        // required + nullable enum: a null raw value still sets the Option (mapped to null)
-        assertFileContains(requiredClass.toPath(),
-                "requiredNullableEnumString = new Option<RequiredClass.RequiredNullableEnumStringEnum?>(requiredNullableEnumStringRawValue == null ? null :");
-        // required + non-nullable enum: keeps the original guard (unchanged behavior)
-        assertFileContains(requiredClass.toPath(),
-                "if (requiredNotnullableEnumStringRawValue != null)");
+        String requiredClassContents = Files.readString(requiredClass.toPath());
+        assertThat(requiredClassContents)
+                .containsPattern(
+                        "if \\(requiredNullableEnumStringRawValue == null\\)\\s+" +
+                                "requiredNullableEnumString = new Option<RequiredClass.RequiredNullableEnumStringEnum\\?>\\(null\\);")
+                .containsPattern(
+                        "if \\(requiredNotnullableEnumStringRawValue != null\\)\\s+\\{");
+        assertThat(requiredClassContents).contains(
+                "if (requiredNullableEnumStringValue == null)\n" +
+                        "                                    throw new JsonException();",
+                "if (requiredNotnullableEnumStringValue == null)\n" +
+                        "                                    throw new JsonException();",
+                "if (!requiredNullableEnumString.IsSet)\n" +
+                        "                throw new JsonException(\"Property is required for class RequiredClass: required_nullable_enum_string.\");",
+                "if (!requiredNotnullableEnumString.IsSet)\n" +
+                        "                throw new JsonException(\"Property is required for class RequiredClass: required_notnullable_enum_string.\");"
+        );
     }
 
     @Test
@@ -148,6 +201,98 @@ public class CSharpClientCodegenTest {
         assertNotNull(apiFile);
         assertFileContains(apiFile.toPath(),
                 "localVarRequestOptions.HeaderParameters.Add(\"X-CUSTOM_CONSTANT_HEADER\", Org.OpenAPITools.Client.ClientUtils.ParameterToString(\"CONSTANT_VALUE\"));");
+    }
+
+    @Test
+    public void testJsonContentHeaderUsesJsonSerialization() throws IOException {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_1/csharp/json-header-content.yaml");
+        final DefaultGenerator defaultGenerator = new DefaultGenerator();
+        final ClientOptInput clientOptInput = new ClientOptInput();
+        clientOptInput.openAPI(openAPI);
+        CSharpClientCodegen cSharpClientCodegen = new CSharpClientCodegen();
+        cSharpClientCodegen.setLibrary("restsharp");
+        cSharpClientCodegen.setOutputDir(output.getAbsolutePath());
+        clientOptInput.config(cSharpClientCodegen);
+        defaultGenerator.opts(clientOptInput);
+
+        Map<String, File> files = defaultGenerator.generate().stream()
+                .collect(Collectors.toMap(File::getPath, Function.identity()));
+
+        File apiFile = files
+                .get(Paths.get(output.getAbsolutePath(), "src", "Org.OpenAPITools", "Api", "DefaultApi.cs").toString());
+        assertNotNull(apiFile);
+        // JSON-content header is serialized as JSON, not via ParameterToString (which would emit the model's debug ToString()).
+        assertFileContains(apiFile.toPath(),
+                "localVarRequestOptions.HeaderParameters.Add(\"X-Json-Arg\", Org.OpenAPITools.Client.ClientUtils.ParameterToJsonString(xJsonArg)); // header parameter");
+        assertFileNotContains(apiFile.toPath(),
+                "localVarRequestOptions.HeaderParameters.Add(\"X-Json-Arg\", Org.OpenAPITools.Client.ClientUtils.ParameterToString(xJsonArg)); // header parameter");
+        // A vendor JSON media type (application/vnd.*+json) is also serialized as JSON.
+        assertFileContains(apiFile.toPath(),
+                "localVarRequestOptions.HeaderParameters.Add(\"X-Vendor-Json-Arg\", Org.OpenAPITools.Client.ClientUtils.ParameterToJsonString(xVendorJsonArg)); // header parameter");
+        // A regular (non-JSON) header keeps the existing behavior.
+        assertFileContains(apiFile.toPath(),
+                "localVarRequestOptions.HeaderParameters.Add(\"X-Plain-Arg\", Org.OpenAPITools.Client.ClientUtils.ParameterToString(xPlainArg)); // header parameter");
+    }
+
+    @Test
+    public void testJsonContentHeaderUsesJsonSerializationGenericHost() throws IOException {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_1/csharp/json-header-content.yaml");
+        final DefaultGenerator defaultGenerator = new DefaultGenerator();
+        final ClientOptInput clientOptInput = new ClientOptInput();
+        clientOptInput.openAPI(openAPI);
+        CSharpClientCodegen cSharpClientCodegen = new CSharpClientCodegen();
+        cSharpClientCodegen.setLibrary("generichost");
+        cSharpClientCodegen.setOutputDir(output.getAbsolutePath());
+        clientOptInput.config(cSharpClientCodegen);
+        defaultGenerator.opts(clientOptInput);
+
+        Map<String, File> files = defaultGenerator.generate().stream()
+                .collect(Collectors.toMap(File::getPath, Function.identity()));
+
+        File apiFile = files
+                .get(Paths.get(output.getAbsolutePath(), "src", "Org.OpenAPITools", "Api", "DefaultApi.cs").toString());
+        assertNotNull(apiFile);
+        // JSON-content header is serialized with System.Text.Json using the client's serializer options.
+        assertFileContains(apiFile.toPath(),
+                "JsonSerializer.Serialize(xJsonArg, _jsonSerializerOptions)");
+        // A vendor JSON media type (application/vnd.*+json) is also serialized as JSON.
+        assertFileContains(apiFile.toPath(),
+                "JsonSerializer.Serialize(xVendorJsonArg, _jsonSerializerOptions)");
+        assertFileContains(apiFile.toPath(),
+                "ClientUtils.ParameterToString(xPlainArg)");
+    }
+
+    @Test
+    public void testUserAgentIsNotUrlEncoded() throws IOException {
+        // both restsharp Configuration templates: the default one and the useIntForTimeout v7.9.0 fallback
+        for (boolean useIntForTimeout : new boolean[]{false, true}) {
+            File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+            output.deleteOnExit();
+            final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore.yaml");
+            final DefaultGenerator defaultGenerator = new DefaultGenerator();
+            final ClientOptInput clientOptInput = new ClientOptInput();
+            clientOptInput.openAPI(openAPI);
+            CSharpClientCodegen cSharpClientCodegen = new CSharpClientCodegen();
+            cSharpClientCodegen.setLibrary("restsharp");
+            cSharpClientCodegen.setOutputDir(output.getAbsolutePath());
+            cSharpClientCodegen.additionalProperties().put(CodegenConstants.HTTP_USER_AGENT, "my-client/1.2.3 (linux)");
+            cSharpClientCodegen.additionalProperties().put("useIntForTimeout", useIntForTimeout);
+            clientOptInput.config(cSharpClientCodegen);
+            defaultGenerator.opts(clientOptInput);
+
+            Map<String, File> files = defaultGenerator.generate().stream()
+                    .collect(Collectors.toMap(File::getPath, Function.identity()));
+
+            File configuration = files
+                    .get(Paths.get(output.getAbsolutePath(), "src", "Org.OpenAPITools", "Client", "Configuration.cs").toString());
+            assertNotNull(configuration);
+            assertFileContains(configuration.toPath(), "UserAgent = \"my-client/1.2.3 (linux)\";");
+            assertFileNotContains(configuration.toPath(), "UserAgent = WebUtility.UrlEncode(");
+        }
     }
 
     @Test
@@ -331,6 +476,67 @@ public class CSharpClientCodegenTest {
                 ": byte"
         );
 
+        File modelWithEnumPropertiesFile = files.get(Paths
+                .get(output.getAbsolutePath(), "src", "Org.OpenAPITools", "Model", "ModelWithEnumProperties.cs")
+                .toString()
+        );
+        assertNotNull(modelWithEnumPropertiesFile, "Could not find file for model: ModelWithEnumProperties");
+        String modelWithEnumProperties = Files.readString(modelWithEnumPropertiesFile.toPath());
+
+        // Unknown non-null enum values are rejected consistently for nullable and non-nullable
+        // string, numeric, and byte-backed inner enums.
+        assertThat(modelWithEnumProperties).contains(
+                "if (inlineIntEnumValue == null)\n" +
+                        "                                    throw new JsonException();",
+                "if (nullableInlineIntEnumValue == null)\n" +
+                        "                                    throw new JsonException();",
+                "if (inlineStringEnumValue == null)\n" +
+                        "                                    throw new JsonException();",
+                "if (nullableInlineStringEnumValue == null)\n" +
+                        "                                    throw new JsonException();",
+                "if (inlineByteEnumValue == null)\n" +
+                        "                                    throw new JsonException();",
+                "if (nullableInlineByteEnumValue == null)\n" +
+                        "                                    throw new JsonException();",
+                "inlineIntEnum = new Option<ModelWithEnumProperties.InlineIntEnumEnum?>(inlineIntEnumValue);",
+                "ModelWithEnumProperties.NullableInlineIntEnumEnum? nullableInlineIntEnumValue = " +
+                        "ModelWithEnumProperties.NullableInlineIntEnumEnumFromStringOrDefault(nullableInlineIntEnumRawValue);",
+                "nullableInlineIntEnum = new Option<ModelWithEnumProperties.NullableInlineIntEnumEnum?>(" +
+                        "nullableInlineIntEnumValue);",
+                "inlineStringEnum = new Option<ModelWithEnumProperties.InlineStringEnumEnum?>(inlineStringEnumValue);",
+                "nullableInlineStringEnum = new Option<ModelWithEnumProperties.NullableInlineStringEnumEnum?>(" +
+                        "nullableInlineStringEnumValue);"
+        );
+
+        // Numeric and byte-backed enums record an explicit JSON null as present so existing
+        // nullability validation can distinguish it from a missing property.
+        assertThat(modelWithEnumProperties)
+                .containsPattern(
+                        "if \\(utf8JsonReader.TokenType == JsonTokenType.Null\\)\\s+" +
+                                "inlineIntEnum = new Option<ModelWithEnumProperties.InlineIntEnumEnum\\?>\\(null\\);")
+                .containsPattern(
+                        "if \\(utf8JsonReader.TokenType == JsonTokenType.Null\\)\\s+" +
+                                "nullableInlineIntEnum = new Option<ModelWithEnumProperties.NullableInlineIntEnumEnum\\?>\\(null\\);")
+                .containsPattern(
+                        "if \\(inlineStringEnumRawValue != null\\)\\s+\\{")
+                .containsPattern(
+                        "if \\(nullableInlineStringEnumRawValue == null\\)\\s+" +
+                                "nullableInlineStringEnum = new Option<ModelWithEnumProperties.NullableInlineStringEnumEnum\\?>\\(null\\);")
+                .containsPattern(
+                        "if \\(utf8JsonReader.TokenType == JsonTokenType.Null\\)\\s+" +
+                                "inlineByteEnum = new Option<ModelWithEnumProperties.InlineByteEnumEnum\\?>\\(null\\);")
+                .containsPattern(
+                        "if \\(utf8JsonReader.TokenType == JsonTokenType.Null\\)\\s+" +
+                                "nullableInlineByteEnum = new Option<ModelWithEnumProperties.NullableInlineByteEnumEnum\\?>\\(null\\);");
+
+        // Required numeric checks distinguish a missing property from a present null.
+        assertThat(modelWithEnumProperties).contains(
+                "if (!requiredInlineIntEnum.IsSet)\n" +
+                        "                throw new JsonException(\"Property is required for class ModelWithEnumProperties: requiredInlineIntEnum.\");",
+                "if (requiredInlineIntEnum.IsSet && requiredInlineIntEnum.Value == null)\n" +
+                        "                throw new JsonException(\"Property is not nullable for class ModelWithEnumProperties: requiredInlineIntEnum.\");"
+        );
+
         // Verify long enum uses int64 reader with validation and actual int64 values
         File longEnumFile = files.get(Paths
                 .get(output.getAbsolutePath(), "src", "Org.OpenAPITools", "Model", "LongEnum.cs")
@@ -426,10 +632,144 @@ public class CSharpClientCodegenTest {
                 "inlineLongEnumRawValue = utf8JsonReader.GetInt64().ToString(System.Globalization.CultureInfo.InvariantCulture)",
                 "inlineDoubleEnumRawValue = utf8JsonReader.GetDouble().ToString(System.Globalization.CultureInfo.InvariantCulture)",
                 "inlineByteEnumRawValue = utf8JsonReader.GetByte().ToString(System.Globalization.CultureInfo.InvariantCulture)",
+                "nullableInlineByteEnumRawValue = utf8JsonReader.GetByte().ToString(System.Globalization.CultureInfo.InvariantCulture)",
+                "inlineStringEnumRawValue = utf8JsonReader.GetString()",
+                "nullableInlineStringEnumRawValue = utf8JsonReader.GetString()",
                 "InlineLongEnumEnum : long",
                 "InlineByteEnumEnum : byte",
                 "return 1.1d;",
                 "return -1.2d;"
         );
+    }
+
+    @Test
+    public void testMapResponse() throws Exception {
+        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore.yaml");
+        final CSharpClientCodegen codegen = new CSharpClientCodegen();
+        codegen.setOpenAPI(openAPI);
+        Operation operation = openAPI.getPaths().get("/store/inventory").getGet();
+        final CodegenOperation co = codegen.fromOperation("getInventory", "GET", operation, null);
+
+        OperationMap operationMap = new OperationMap();
+        operationMap.setOperation(co);
+
+        OperationsMap objs = new OperationsMap();
+        objs.setOperation(operationMap);
+        objs.setImports(Collections.emptyList());
+        codegen.postProcessOperationsWithModels(objs, Collections.emptyList());
+
+        Assert.assertEquals(co.responses.size(), 1);
+        CodegenResponse cr1 = co.responses.get(0);
+        Assert.assertEquals(cr1.code, "200");
+        Assert.assertEquals(cr1.baseType, "Integer");
+        Assert.assertEquals(cr1.dataType, "Map<string, Integer>");
+        Assert.assertFalse(cr1.isArray);
+        Assert.assertFalse(cr1.isModel);
+        Assert.assertTrue(cr1.isMap);
+    }
+
+    @Test(description = "conditionalSerialization: an all-optional model's public constructor must not raise the serialization flag for value-typed properties the caller never passed")
+    public void testConditionalSerializationValueTypeConstructorFlags() throws IOException {
+        Map<String, File> files = generateConditionalSerializationValueTypeModels(true);
+
+        File updateCommand = files.get("UpdateThingCommand.cs");
+        assertNotNull(updateCommand);
+        // value-typed parameters become nullable so "not passed" is representable ...
+        assertFileContains(updateCommand.toPath(),
+                "public UpdateThingCommand(bool? autoRenew = default, int? period = default, int? graceDays = default, StatusEnum? status = default, RenewalModeEnum? renewalMode = default, string note = default)");
+        // ... and the flag is only raised for arguments that were actually provided
+        assertFileContains(updateCommand.toPath(),
+                "if (autoRenew != null)\n" +
+                        "        {\n" +
+                        "            this._AutoRenew = autoRenew.Value;\n" +
+                        "            this._flagAutoRenew = true;\n" +
+                        "        }");
+        // optional enums take the same guarded path
+        assertFileContains(updateCommand.toPath(),
+                "if (status != null)\n" +
+                        "        {\n" +
+                        "            this._Status = status.Value;\n" +
+                        "            this._flagStatus = true;\n" +
+                        "        }");
+        // a nullable value type already had a meaningful null check and keeps it
+        assertFileContains(updateCommand.toPath(),
+                "this._GraceDays = graceDays;\n" +
+                        "        if (this.GraceDays != null)\n" +
+                        "        {\n" +
+                        "            this._flagGraceDays = true;\n" +
+                        "        }");
+        // the public property surface is untouched: plain value types, flag-raising setters
+        assertFileContains(updateCommand.toPath(), "public bool AutoRenew", "public int Period");
+        assertFileNotContains(updateCommand.toPath(), "public bool? AutoRenew", "public int? Period");
+
+        // required value-typed properties keep their non-nullable parameter and unconditional assignment
+        File createCommand = files.get("CreateThingCommand.cs");
+        assertNotNull(createCommand);
+        assertFileContains(createCommand.toPath(),
+                "public CreateThingCommand(string name = default, bool autoRenew = default, string note = default)");
+        assertFileContains(createCommand.toPath(), "this._AutoRenew = autoRenew;");
+        assertFileNotContains(createCommand.toPath(), "autoRenew.Value");
+    }
+
+    @Test(description = "without conditionalSerialization the constructor keeps plain value-typed parameters")
+    public void testValueTypeConstructorUnchangedWithoutConditionalSerialization() throws IOException {
+        Map<String, File> files = generateConditionalSerializationValueTypeModels(false);
+
+        File updateCommand = files.get("UpdateThingCommand.cs");
+        assertNotNull(updateCommand);
+        assertFileContains(updateCommand.toPath(),
+                "public UpdateThingCommand(bool autoRenew = default, int period = default, int? graceDays = default, StatusEnum? status = default, RenewalModeEnum? renewalMode = default, string note = default)");
+        assertFileNotContains(updateCommand.toPath(), "_flagAutoRenew");
+    }
+
+    private Map<String, File> generateConditionalSerializationValueTypeModels(boolean conditionalSerialization) throws IOException {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/csharp/conditional-serialization-value-types.yaml");
+        final DefaultGenerator defaultGenerator = new DefaultGenerator();
+        final ClientOptInput clientOptInput = new ClientOptInput();
+        clientOptInput.openAPI(openAPI);
+        CSharpClientCodegen cSharpClientCodegen = new CSharpClientCodegen();
+        cSharpClientCodegen.setLibrary("httpclient");
+        cSharpClientCodegen.setOutputDir(output.getAbsolutePath());
+        cSharpClientCodegen.additionalProperties().put(CodegenConstants.OPTIONAL_CONDITIONAL_SERIALIZATION, String.valueOf(conditionalSerialization));
+        clientOptInput.config(cSharpClientCodegen);
+        defaultGenerator.opts(clientOptInput);
+
+        return defaultGenerator.generate().stream()
+                .collect(Collectors.toMap(File::getName, Function.identity(), (first, second) -> first));
+    }
+
+    private Map<String, File> generateIssue23046Models(boolean nonPublicApi) throws IOException {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/csharp/issue_23046.yaml");
+        final DefaultGenerator defaultGenerator = new DefaultGenerator();
+        final ClientOptInput clientOptInput = new ClientOptInput();
+        clientOptInput.openAPI(openAPI);
+        CSharpClientCodegen cSharpClientCodegen = new CSharpClientCodegen();
+        cSharpClientCodegen.setLibrary("generichost");
+        cSharpClientCodegen.setOutputDir(output.getAbsolutePath());
+        cSharpClientCodegen.setNonPublicApi(nonPublicApi);
+        clientOptInput.config(cSharpClientCodegen);
+        defaultGenerator.opts(clientOptInput);
+
+        Map<String, File> files = defaultGenerator.generate().stream()
+                .collect(Collectors.toMap(File::getPath, Function.identity()));
+        Map<String, File> models = Map.of(
+                "DynamicMetadataValue", getGeneratedModel(files, output, "DynamicMetadataValue"),
+                "ResponseOnlyValue", getGeneratedModel(files, output, "ResponseOnlyValue"),
+                "QueryParameterValue", getGeneratedModel(files, output, "QueryParameterValue"),
+                "ReadOnlyValue", getGeneratedModel(files, output, "ReadOnlyValue"),
+                "ForbiddenValue", getGeneratedModel(files, output, "ForbiddenValue"));
+        return models;
+    }
+
+    private File getGeneratedModel(Map<String, File> files, File output, String modelName) {
+        String path = Paths.get(output.getAbsolutePath(),
+                "src", "Org.OpenAPITools", "Model", modelName + ".cs").toString();
+        File model = files.get(path);
+        assertNotNull(model, "Could not find generated model: " + path);
+        return model;
     }
 }

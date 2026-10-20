@@ -27,7 +27,7 @@ These options may be applied as additional-properties (cli) or configOptions (pl
 |generateSourceCodeOnly|Specifies that only a library source code is to be generated.| |false|
 |hideGenerationTimestamp|Hides the generation timestamp when files are generated.| |true|
 |lazyImports|Enable lazy imports.| |false|
-|library|library template (sub-template) to use: asyncio, tornado (deprecated), urllib3, httpx| |urllib3|
+|library|library template (sub-template) to use: asyncio, urllib3, httpx, httpx2| |urllib3|
 |mapNumberTo|Map number to Union[StrictFloat, StrictInt], StrictFloat, float or Decimal.| |Union[StrictFloat, StrictInt]|
 |packageName|python package name (convention: snake_case).| |openapi_client|
 |packageUrl|python package URL.| |null|
@@ -36,7 +36,8 @@ These options may be applied as additional-properties (cli) or configOptions (pl
 |projectName|python project name in setup.py (e.g. petstore-api).| |null|
 |recursionLimit|Set the recursion limit. If not set, use the system default value.| |null|
 |setEnsureAsciiToFalse|When set to true, add `ensure_ascii=False` in json.dumps when creating the HTTP request body.| |false|
-|supportHttpxSync|Generate synchronous '_sync' variants of each API method (httpx library only). Each '_sync' method simply calls the corresponding async method and waits for its completion, so both synchronous and asynchronous methods are available from the same API class.| |false|
+|sourceFolder|directory for generated python source code; 'src' for _src layout_, unset (or '.') for _flat layout_.| |null|
+|supportHttpxSync|Generate synchronous '_sync' variants of each API method (httpx and httpx2 libraries only). Each '_sync' method simply calls the corresponding async method and waits for its completion, so both synchronous and asynchronous methods are available from the same API class.| |false|
 |useIndependentImplicitClients|Give API instances without an explicit or registered default ApiClient an owned client with a copied Configuration.| |false|
 |useOneOfDiscriminatorLookup|Use the discriminator's mapping in oneOf to speed up the model lookup. IMPORTANT: Validation (e.g. one and only one match in oneOf's schemas) will be skipped.| |false|
 
@@ -101,6 +102,8 @@ These options may be applied as additional-properties (cli) or configOptions (pl
 <li>for</li>
 <li>form_params</li>
 <li>from</li>
+<li>from_dict</li>
+<li>from_json</li>
 <li>global</li>
 <li>header_params</li>
 <li>if</li>
@@ -110,6 +113,22 @@ These options may be applied as additional-properties (cli) or configOptions (pl
 <li>json</li>
 <li>lambda</li>
 <li>local_var_files</li>
+<li>model_computed_fields</li>
+<li>model_config</li>
+<li>model_construct</li>
+<li>model_copy</li>
+<li>model_dump</li>
+<li>model_dump_json</li>
+<li>model_extra</li>
+<li>model_fields</li>
+<li>model_fields_set</li>
+<li>model_json_schema</li>
+<li>model_parametrized_name</li>
+<li>model_post_init</li>
+<li>model_rebuild</li>
+<li>model_validate</li>
+<li>model_validate_json</li>
+<li>model_validate_strings</li>
 <li>none</li>
 <li>nonlocal</li>
 <li>not</li>
@@ -124,6 +143,9 @@ These options may be applied as additional-properties (cli) or configOptions (pl
 <li>return</li>
 <li>schema</li>
 <li>self</li>
+<li>to_dict</li>
+<li>to_json</li>
+<li>to_str</li>
 <li>true</li>
 <li>try</li>
 <li>while</li>

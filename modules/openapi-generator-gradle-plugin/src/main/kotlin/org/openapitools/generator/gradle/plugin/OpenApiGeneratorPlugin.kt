@@ -62,6 +62,18 @@ class OpenApiGeneratorPlugin : Plugin<Project> {
 
             generate.outputDir.convention(layout.buildDirectory.dir("generate-resources/main"))
 
+            // A dependency configuration users can add custom classes to (e.g. a jar containing a
+            // custom NORMALIZER_CLASS) so they are forwarded to the code generation worker's
+            // classpath, in both "process" and "classloader" workerIsolation modes. Not consumed or
+            // published; only resolved by this plugin.
+            val generatorExtraClasspath = configurations.create("openApiGeneratorExtra") {
+                isVisible = false
+                isCanBeConsumed = false
+                isCanBeResolved = true
+                description = "Additional classpath entries (e.g. custom NORMALIZER_CLASS jars) " +
+                        "forwarded to the openApiGenerate worker in both process and classloader isolation."
+            }
+
             tasks.apply {
                 register("openApiGenerators", GeneratorsTask::class.java).configure {
                     group = pluginGroup
@@ -103,6 +115,8 @@ class OpenApiGeneratorPlugin : Plugin<Project> {
                     inputSpecRootDirectory.set(generate.inputSpecRootDirectory)
                     inputSpecRootDirectorySkipMerge.set(generate.inputSpecRootDirectorySkipMerge)
                     inputSpecFiles.from(generate.inputSpecFiles)
+                    schemaLocation.set(generate.schemaLocation)
+                    schemaLocations.from(generate.schemaLocations)
                     mergedFileOutputDir.set(generate.mergedFileOutputDir)
                     mergedFileName.set(generate.mergedFileName)
                     mergedFileInfoName.set(generate.mergedFileInfoName)
@@ -131,7 +145,6 @@ class OpenApiGeneratorPlugin : Plugin<Project> {
                     openapiGeneratorIgnoreList.set(generate.openapiGeneratorIgnoreList)
                     importMappings.set(generate.importMappings)
                     schemaMappings.set(generate.schemaMappings)
-                    forcedGenerateSchemas.set(generate.forcedGenerateSchemas)
                     inlineSchemaNameMappings.set(generate.inlineSchemaNameMappings)
                     inlineSchemaOptions.set(generate.inlineSchemaOptions)
                     nameMappings.set(generate.nameMappings)
@@ -174,6 +187,8 @@ class OpenApiGeneratorPlugin : Plugin<Project> {
                     generateRecursiveDependentModels.set(generate.generateRecursiveDependentModels)
                     workerIsolation.set(generate.workerIsolation)
                     maxWorkerHeapSize.set(generate.maxWorkerHeapSize)
+                    generatorClasspath.from(generatorExtraClasspath)
+                    generatorClasspath.from(generate.generatorClasspath)
                 }
             }
         }

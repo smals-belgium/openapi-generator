@@ -18,6 +18,7 @@
 package org.openapitools.codegen.languages;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.Iterables;
 import com.samskivert.mustache.Mustache;
 import io.swagger.v3.oas.models.media.Schema;
@@ -28,6 +29,7 @@ import org.openapitools.codegen.*;
 import org.openapitools.codegen.meta.GeneratorMetadata;
 import org.openapitools.codegen.meta.Stability;
 import org.openapitools.codegen.meta.features.*;
+import org.openapitools.codegen.model.EnumVarMap;
 import org.openapitools.codegen.model.ModelMap;
 import org.openapitools.codegen.model.ModelsMap;
 import org.openapitools.codegen.model.OperationMap;
@@ -40,7 +42,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.*;
 
+import static org.openapitools.codegen.model.EnumVarMap.ENUM_VARS;
 import static org.openapitools.codegen.utils.CamelizeOption.LOWERCASE_FIRST_LETTER;
+import static org.openapitools.codegen.utils.EnumUtils.getEnumValues;
+import static org.openapitools.codegen.utils.ModelUtils.hasAnyOf;
+import static org.openapitools.codegen.utils.ModelUtils.hasOneOf;
 import static org.openapitools.codegen.utils.StringUtils.camelize;
 
 /**
@@ -60,6 +66,7 @@ public class GoClientCodegen extends AbstractGoCodegen {
     public static final String MODEL_FILE_FOLDER = "modelFileFolder";
     public static final String WITH_GO_MOD = "withGoMod";
     public static final String USE_DEFAULT_VALUES_FOR_REQUIRED_VARS = "useDefaultValuesForRequiredVars";
+    public static final String USE_HTTP_HEADER_SET = "useHttpHeaderSet";
     public static final String IMPORT_VALIDATOR = "importValidator";
     @Setter protected String goImportAlias = "openapiclient";
     protected boolean isGoSubmodule = false;
@@ -133,6 +140,7 @@ public class GoClientCodegen extends AbstractGoCodegen {
         cliOptions.add(CliOption.newBoolean(WITH_AWSV4_SIGNATURE, "whether to include AWS v4 signature support"));
         cliOptions.add(CliOption.newBoolean(GENERATE_INTERFACES, "Generate interfaces for api classes"));
         cliOptions.add(CliOption.newBoolean(USE_DEFAULT_VALUES_FOR_REQUIRED_VARS, "Use default values for required variables when available"));
+        cliOptions.add(CliOption.newBoolean(USE_HTTP_HEADER_SET, "When setting HTTP request headers, use http.Header.Set with canonicalized header names"));
 
         // option to change the order of form/body parameter
         cliOptions.add(CliOption.newBoolean(
@@ -170,6 +178,16 @@ public class GoClientCodegen extends AbstractGoCodegen {
         this.setEnumUnknownDefaultCase(false);
 
         this.setWithGoMod(true);
+    }
+
+    @Override
+    public void postProcessParameter(CodegenParameter parameter) {
+        super.postProcessParameter(parameter);
+        if (parameter.isHeaderParam
+                && (isJsonMimeType(parameter.contentType) || isJsonVendorMimeType(parameter.contentType))) {
+            parameter.vendorExtensions.put("x-go-json-header", true);
+            additionalProperties.put("x-go-has-json-header", true);
+        }
     }
 
     /**
@@ -212,6 +230,7 @@ public class GoClientCodegen extends AbstractGoCodegen {
 
     @Override
     public void processOpts() {
+        additionalProperties.remove("x-go-has-json-header");
         this.setLegacyDiscriminatorBehavior(false);
         super.processOpts();
 
@@ -269,6 +288,11 @@ public class GoClientCodegen extends AbstractGoCodegen {
         if (additionalProperties.containsKey(USE_DEFAULT_VALUES_FOR_REQUIRED_VARS)) {
             setUseDefaultValuesForRequiredVars(Boolean.parseBoolean(additionalProperties.get(USE_DEFAULT_VALUES_FOR_REQUIRED_VARS).toString()));
             additionalProperties.put(USE_DEFAULT_VALUES_FOR_REQUIRED_VARS, useDefaultValuesForRequiredVars);
+        }
+
+        if (additionalProperties.containsKey(USE_HTTP_HEADER_SET)) {
+            setUseHttpHeaderSet(Boolean.parseBoolean(additionalProperties.get(USE_HTTP_HEADER_SET).toString()));
+            additionalProperties.put(USE_HTTP_HEADER_SET, useHttpHeaderSet);
         }
 
         // Generate the 'signing.py' module, but only if the 'HTTP signature' security scheme is specified in the OAS.
@@ -540,7 +564,7 @@ public class GoClientCodegen extends AbstractGoCodegen {
             boolean addedFmtImport = false;
 
             // oneOf
-            if (model.oneOf != null && !model.oneOf.isEmpty()) {
+            if (hasOneOf(model)) {
                 imports.add(createMapping("import", "fmt"));
                 addedFmtImport = true;
 
@@ -551,7 +575,7 @@ public class GoClientCodegen extends AbstractGoCodegen {
             }
 
             // anyOf
-            if (model.anyOf != null && !model.anyOf.isEmpty()) {
+            if (hasAnyOf(model)) {
                 imports.add(createMapping("import", "fmt"));
                 addedFmtImport = true;
             }
@@ -577,6 +601,147 @@ public class GoClientCodegen extends AbstractGoCodegen {
         return objs;
     }
 
+    @Override
+    public Map<String, ModelsMap> postProcessAllModels(Map<String, ModelsMap> objs) {
+        objs = super.postProcessAllModels(objs);
+        if (!generateUnmarshalJSON) {
+            return objs;
+        }
+
+        // Scope allowed-enum checks to oneOf variants whose sibling excludes values of the same property.
+        Map<CodegenModel, Set<String>> allowedOneOfProperties = new IdentityHashMap<>();
+        for (ModelsMap models : objs.values()) {
+            for (ModelMap modelMap : models.getModels()) {
+                CodegenModel union = modelMap.getModel();
+                for (String excludedMemberName : union.oneOf) {
+                    CodegenModel excludedMember = ModelUtils.getModelByName(excludedMemberName, objs);
+                    if (excludedMember == null) {
+                        continue;
+                    }
+                    for (CodegenProperty excludedProperty : effectiveVars(excludedMember).values()) {
+                        CodegenProperty not = excludedProperty.getComposedSchemas() == null
+                                ? null : excludedProperty.getComposedSchemas().getNot();
+                        if (stringEnumComparison(not, true) == null) {
+                            continue;
+                        }
+                        for (String allowedMemberName : union.oneOf) {
+                            if (allowedMemberName.equals(excludedMemberName)) {
+                                continue;
+                            }
+                            CodegenModel allowedMember = ModelUtils.getModelByName(allowedMemberName, objs);
+                            if (allowedMember == null) {
+                                continue;
+                            }
+                            CodegenProperty allowedProperty = effectiveVars(allowedMember).get(excludedProperty.baseName);
+                            if (stringEnumComparison(allowedProperty, false) != null) {
+                                allowedOneOfProperties.computeIfAbsent(allowedMember, ignored -> new HashSet<>())
+                                        .add(excludedProperty.baseName);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for (ModelsMap models : objs.values()) {
+            for (ModelMap modelMap : models.getModels()) {
+                CodegenModel model = modelMap.getModel();
+                if (model.isEnum || hasOneOf(model) || hasAnyOf(model)) {
+                    continue;
+                }
+                // allOf children may need to validate properties inherited from their parent.
+                Map<String, CodegenProperty> effectiveVars = effectiveVars(model);
+                Map<String, CodegenProperty> ownVars = new HashMap<>();
+                for (CodegenProperty param : model.vars) {
+                    ownVars.put(param.baseName, param);
+                }
+                List<CodegenProperty> validationVars = new ArrayList<>();
+                boolean hasInheritedStringEnumValidation = false;
+                for (CodegenProperty param : effectiveVars.values()) {
+                    String allowed = allowedOneOfProperties.getOrDefault(model, Collections.emptySet()).contains(param.baseName)
+                            ? stringEnumComparison(param, false) : null;
+                    CodegenProperty not = param.getComposedSchemas() == null ? null : param.getComposedSchemas().getNot();
+                    String excluded = stringEnumComparison(not, true);
+                    if (allowed != null || excluded != null) {
+                        hasInheritedStringEnumValidation |= !ownVars.containsKey(param.baseName);
+                        if (ownVars.containsKey(param.baseName) && ownVars.get(param.baseName).vendorExtensions.containsKey("x-go-datatag")
+                                && !param.vendorExtensions.containsKey("x-go-datatag")) {
+                            param.vendorExtensions.put("x-go-datatag", ownVars.get(param.baseName).vendorExtensions.get("x-go-datatag"));
+                        }
+                        validationVars.add(param);
+                        param.vendorExtensions.put("x-go-enum-property-name", TextNode.valueOf(param.baseName).toString());
+                        if (allowed != null) {
+                            param.vendorExtensions.put("x-go-allowed-string-enum-comparison", allowed);
+                            if (param.isNullable && (param.isEnumRef || ((List<?>) param.allowableValues.get("values")).contains(null))) {
+                                param.vendorExtensions.put("x-go-allowed-string-enum-null", true);
+                            }
+                        }
+                        if (excluded != null) {
+                            param.vendorExtensions.put("x-go-excluded-string-enum-comparison", excluded);
+                        }
+                    }
+                }
+                if (!validationVars.isEmpty()) {
+                    model.vendorExtensions.put("x-go-has-string-enum-validation", true);
+                    model.vendorExtensions.put("x-go-string-enum-validation-vars", validationVars);
+                    List<Map<String, String>> imports = models.getImports();
+                    if (imports.stream().noneMatch(i -> "fmt".equals(i.get("import")))) {
+                        imports.add(createMapping("import", "fmt"));
+                    }
+                    if (model.hasRequired && validationVars.stream().anyMatch(param -> param.required)) {
+                        // Required-key checks must match the case-insensitive field names accepted by encoding/json.
+                        model.vendorExtensions.put("x-go-enum-required-case-fold", true);
+                        if (imports.stream().noneMatch(i -> "strings".equals(i.get("import")))) {
+                            imports.add(createMapping("import", "strings"));
+                        }
+                    }
+                    imports.sort(Comparator.comparing(i -> i.get("import")));
+                }
+                if (hasInheritedStringEnumValidation && !model.isAdditionalPropertiesTrue) {
+                    for (CodegenProperty param : effectiveVars.values()) {
+                        param.vendorExtensions.put("x-go-flattened-json-name", TextNode.valueOf(param.baseName + (param.required ? "" : ",omitempty")).toString());
+                    }
+                    model.vendorExtensions.put("x-go-inherited-string-enum-validation", true);
+                    model.vendorExtensions.put("x-go-flattened-vars", new ArrayList<>(effectiveVars.values()));
+                }
+            }
+        }
+        return objs;
+    }
+
+    /** Returns properties used for validation, including inherited allOf properties when present. */
+    private static Map<String, CodegenProperty> effectiveVars(CodegenModel model) {
+        Map<String, CodegenProperty> vars = new LinkedHashMap<>();
+        for (CodegenProperty param : model.parent == null ? model.vars : model.allVars) {
+            vars.put(param.baseName, param);
+        }
+        return vars;
+    }
+
+    /** Builds a Go comparison for supported string/null enum values, using equality in exclusion mode. */
+    private static String stringEnumComparison(CodegenProperty property, boolean excluded) {
+        if (property == null || !(property.isString && property.isEnum || property.isEnumRef)
+                || property.allowableValues == null
+                || !(property.allowableValues.get("values") instanceof List)) {
+            return null;
+        }
+        StringJoiner comparisons = new StringJoiner(excluded ? " || " : " && ");
+        for (Object value : (List<?>) property.allowableValues.get("values")) {
+            if (value == null && excluded) {
+                comparisons.add("value == nil");
+                continue;
+            }
+            if (value == null && property.isNullable) {
+                continue;
+            }
+            if (!(value instanceof String)) {
+                return null;
+            }
+            comparisons.add("value " + (excluded ? "==" : "!=") + " " + TextNode.valueOf((String) value));
+        }
+        return comparisons.length() == 0 ? (property.isNullable && !excluded ? "true" : null) : comparisons.toString();
+    }
+
     /**
      * Prefixes the generated {@code unknown_default_open_api} enum case with the model name when enum class prefixing
      * is disabled.
@@ -593,7 +758,7 @@ public class GoClientCodegen extends AbstractGoCodegen {
         }
 
         // The enum variables are stored by the shared enum post-processing as allowableValues["enumVars"].
-        Object enumVarsObject = model.allowableValues.get("enumVars");
+        Object enumVarsObject = model.allowableValues.get(ENUM_VARS);
         if (!(enumVarsObject instanceof List)) {
             return;
         }
@@ -605,10 +770,10 @@ public class GoClientCodegen extends AbstractGoCodegen {
         }
 
         // Prefix only the fallback name so user-defined enum values keep their existing generated names.
-        Map<String, Object> fallbackEnumVar = (Map<String, Object>) enumVars.get(enumVars.size() - 1);
-        Object fallbackName = fallbackEnumVar.get("name");
+        EnumVarMap fallbackEnumVar = (EnumVarMap) enumVars.get(enumVars.size() - 1);
+        Object fallbackName = fallbackEnumVar.getEnumName();
         if (fallbackName instanceof String) {
-            fallbackEnumVar.put("name", model.classname.toUpperCase(Locale.ROOT) + "_" + fallbackName);
+            fallbackEnumVar.setEnumName(model.classname.toUpperCase(Locale.ROOT) + "_" + fallbackName);
         }
     }
 
@@ -799,8 +964,7 @@ public class GoClientCodegen extends AbstractGoCodegen {
                 throw new RuntimeException("Invalid count when constructing example: " + depthList.size());
             }
         } else if (codegenModel.isEnum) {
-            Map<String, Object> allowableValues = codegenModel.allowableValues;
-            List<Object> values = (List<Object>) allowableValues.get("values");
+            List<Object> values = getEnumValues(codegenModel.allowableValues);
             String example = String.valueOf(values.get(0));
             if (codegenModel.isString) {
                 example = "\"" + example + "\"";

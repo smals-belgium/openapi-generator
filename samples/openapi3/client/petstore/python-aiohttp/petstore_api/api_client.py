@@ -247,7 +247,6 @@ class ApiClient:
 
         return method, url, header_params, body, post_params
 
-
     async def call_api(
         self,
         method,
@@ -440,6 +439,12 @@ class ApiClient:
             return None
 
         if isinstance(klass, str):
+            if klass.startswith('Optional['):
+                m = re.match(r'Optional\[(.*)]', klass)
+                assert m is not None, "Malformed Optional type definition"
+                # data is not None here, so the optionality is already resolved
+                return self.__deserialize(data, m.group(1))
+
             if klass.startswith('List['):
                 m = re.match(r'List\[(.*)]', klass)
                 assert m is not None, "Malformed List type definition"
@@ -488,10 +493,15 @@ class ApiClient:
         if collection_formats is None:
             collection_formats = {}
         for k, v in params.items() if isinstance(params, dict) else params:
+            if isinstance(v, bool):
+                v = str(v).lower()
             if k in collection_formats:
                 collection_format = collection_formats[k]
                 if collection_format == 'multi':
-                    new_params.extend((k, value) for value in v)
+                    new_params.extend(
+                        (k, str(value).lower() if isinstance(value, bool) else value)
+                        for value in v
+                    )
                 else:
                     if collection_format == 'ssv':
                         delimiter = ' '
@@ -502,10 +512,19 @@ class ApiClient:
                     else:  # csv is the default
                         delimiter = ','
                     new_params.append(
-                        (k, delimiter.join(str(value) for value in v)))
+                        (k, delimiter.join(
+                            str(value).lower() if isinstance(value, bool) else str(value)
+                            for value in v)))
             else:
                 new_params.append((k, v))
         return new_params
+
+    def explode_query_object(self, name, obj):
+        """form style, explode: one query parameter per entry, keyed by the property name; a list repeats the name, None is left out"""
+        obj = self.sanitize_for_serialization(obj)
+        if not isinstance(obj, dict):
+            obj = {name: obj}
+        return [(k, item) for k, v in obj.items() for item in (v if isinstance(v, (list, tuple)) else [v]) if item is not None]
 
     def parameters_to_url_query(self, params, collection_formats):
         """Get parameters as list of tuples, formatting collections.
@@ -525,10 +544,14 @@ class ApiClient:
             if isinstance(v, dict):
                 v = json.dumps(v)
 
-            if k in collection_formats:
+            # a collection format applies only to a list; an exploded entry may share a declared array parameter's name
+            if k in collection_formats and isinstance(v, (list, tuple)):
                 collection_format = collection_formats[k]
                 if collection_format == 'multi':
-                    new_params.extend((k, quote(str(value))) for value in v)
+                    new_params.extend(
+                        (quote(str(k)), quote(str(value).lower() if isinstance(value, bool) else str(value)))
+                        for value in v
+                    )
                 else:
                     if collection_format == 'ssv':
                         delimiter = ' '
@@ -539,10 +562,13 @@ class ApiClient:
                     else:  # csv is the default
                         delimiter = ','
                     new_params.append(
-                        (k, delimiter.join(quote(str(value)) for value in v))
+                        (quote(str(k)), delimiter.join(
+                            quote(str(value).lower() if isinstance(value, bool) else str(value))
+                            for value in v))
                     )
             else:
-                new_params.append((k, quote(str(v))))
+                # names are quoted too: an exploded object's names are runtime data
+                new_params.append((quote(str(k)), quote(str(v))))
 
         return "&".join(["=".join(map(str, item)) for item in new_params])
 
@@ -682,11 +708,8 @@ class ApiClient:
                 headers['Cookie'] = ""
             else:
                 headers['Cookie'] += "; "
-            # Account for cookie value containing spaces and special characters
-            cookie_value = str(auth_setting['value'])
-            if not re.match("^\".*\"$", cookie_value):
-                cookie_value = cookie_value.replace("\"", "\\\"")
-                cookie_value = f"\"{cookie_value}\""
+            # Account for cookie value containing spaces and special characters, excluding base64 delimiters
+            cookie_value = quote(str(auth_setting['value']), safe="!#$%&'()*+-./:<=>?@[]^_`{|}~%+/=")
             headers['Cookie'] += f"{auth_setting['key']}={cookie_value}"
         elif auth_setting['in'] == 'header':
             if auth_setting['type'] != 'http-signature':

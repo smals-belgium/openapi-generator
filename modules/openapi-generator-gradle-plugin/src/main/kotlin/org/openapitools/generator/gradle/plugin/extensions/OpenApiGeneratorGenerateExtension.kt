@@ -86,6 +86,30 @@ open class OpenApiGeneratorGenerateExtension(private val project: Project) {
     val inputSpecFiles: ConfigurableFileCollection = project.objects.fileCollection()
 
     /**
+     * Optional directory containing additional schema files referenced via `$ref` in the input
+     * specification, tracked for up-to-date checks.
+     *
+     * Declaring this directory tells Gradle to track all files inside it for up-to-date checks.
+     * Without it, changes to `$ref`-referenced schemas will not trigger re-generation because
+     * Gradle only watches [inputSpec] by default.
+     *
+     * For schemas that aren't all under one directory, use [schemaLocations] instead.
+     */
+    val schemaLocation: DirectoryProperty = project.objects.directoryProperty()
+
+    /**
+     * Optional collection of additional schema files/directories referenced via `$ref` in the input
+     * specification, tracked for up-to-date checks.
+     *
+     * Unlike [schemaLocation], which only accepts a single whole directory, this accepts any
+     * combination of individual files, multiple directories, or filtered file trees, e.g.:
+     * ```kotlin
+     * schemaLocations.from("schemas/user.yaml", "schemas/order.yaml")
+     * ```
+     */
+    val schemaLocations: ConfigurableFileCollection = project.objects.fileCollection()
+
+    /**
      * Directory where the merged spec file is written when [inputSpecFiles] is used.
      * Must be set when [inputSpecFiles] is non-empty.
      */
@@ -246,11 +270,6 @@ open class OpenApiGeneratorGenerateExtension(private val project: Project) {
     val schemaMappings = project.objects.mapProperty<String, String>()
 
     /**
-     * Specifies schema names that must be generated even when listed in schemaMappings or importMappings
-     */
-    val forcedGenerateSchemas = project.objects.listProperty<String>()
-
-    /**
      * Specifies mappings between an inline schema name and the new name
      */
     val inlineSchemaNameMappings = project.objects.mapProperty<String, String>()
@@ -296,6 +315,11 @@ open class OpenApiGeneratorGenerateExtension(private val project: Project) {
      * Example rules: `REFACTOR_ALLOF_WITH_PROPERTIES_ONLY=true`,
      * `REMOVE_ANYOF_ONEOF_AND_KEEP_PROPERTIES_ONLY=true`. See the OpenAPI Generator docs for
      * the full list of normalizer rules.
+     *
+     * For the `NORMALIZER_CLASS` rule (a custom class extending `OpenAPINormalizer`), the class
+     * must be added to the [generatorClasspath] (or the `openApiGeneratorExtra` dependency
+     * configuration) so it is resolvable by the code generation worker in both `workerIsolation`
+     * modes; otherwise it will fail to load with a `ClassNotFoundException`.
      */
     val openapiNormalizer = project.objects.mapProperty<String, String>()
 
@@ -536,6 +560,33 @@ open class OpenApiGeneratorGenerateExtension(private val project: Project) {
      */
     val maxWorkerHeapSize = project.objects.property<String>()
 
+    /**
+     * Additional classpath entries (jars, class directories, project outputs) made visible to the
+     * code generation worker in *both* [workerIsolation] modes (`process` and `classloader`).
+     *
+     * This is the mechanism by which custom classes referenced by name in generator options -
+     * most notably a custom `NORMALIZER_CLASS` in [openapiNormalizer] - are resolved: such classes
+     * are not on the plugin's own runtime classpath, so without contributing them here the worker
+     * (particularly under `process` isolation, which runs in an isolated JVM) cannot load them.
+     *
+     * For the common case of depending on a published artifact or another project's output, prefer
+     * adding a dependency to the `openApiGeneratorExtra` configuration created by this plugin, e.g.:
+     * ```kotlin
+     * dependencies {
+     *     openApiGeneratorExtra("com.acme:my-normalizer:1.0.0")
+     *     openApiGeneratorExtra(project(":my-normalizer-module"))
+     * }
+     * ```
+     * Entries resolved from `openApiGeneratorExtra` are always included automatically; this
+     * property is an additional, lower-level escape hatch for ad hoc files or directories, e.g.:
+     * ```kotlin
+     * openApiGenerate {
+     *     generatorClasspath.from(files("libs/my-normalizer.jar"))
+     * }
+     * ```
+     */
+    val generatorClasspath: ConfigurableFileCollection = project.objects.fileCollection()
+
     init {
         applyDefaults()
     }
@@ -614,6 +665,24 @@ open class OpenApiGeneratorGenerateExtension(private val project: Project) {
         ignoreFileOverride.set(project.layout.projectDirectory.file(path))
     }
 
+    /** Backwards-compatibility bridge for schemaLocation */
+    fun setSchemaLocation(path: String) {
+        schemaLocation.set(project.layout.projectDirectory.dir(path))
+    }
+
+    /**
+     * Groovy-compatible helper for schemaLocations.
+     *
+     * [schemaLocations] is a [ConfigurableFileCollection], which does not support Groovy `=`
+     * assignment (it isn't a [org.gradle.api.provider.Property]). Use this method instead:
+     * ```groovy
+     * setSchemaLocationsAsStrings("schemas/user.yaml", "schemas/order.yaml")
+     * ```
+     */
+    fun setSchemaLocationsAsStrings(vararg paths: String) {
+        schemaLocations.setFrom(paths.map { project.layout.projectDirectory.asFile.resolve(it) })
+    }
+
     // ========================================================================
     // Kotlin DSL extension functions for property setters
     // These allow Kotlin DSL users to call .set(String) on file/directory properties
@@ -647,6 +716,8 @@ open class OpenApiGeneratorGenerateExtension(private val project: Project) {
             setInputSpecRootDirectory(path)
         } else if (this === templateDir) {
             setTemplateDir(path)
+        } else if (this === schemaLocation) {
+            setSchemaLocation(path)
         } else {
             // Fallback for any other DirectoryProperty
             this.set(project.layout.projectDirectory.dir(path))

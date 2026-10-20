@@ -189,7 +189,12 @@ namespace Org.OpenAPITools.Model
                         case "pet_type":
                             string? petTypeRawValue = utf8JsonReader.GetString();
                             if (petTypeRawValue != null)
-                                petType = new Option<ChildCat.PetTypeEnum?>(ChildCat.PetTypeEnumFromStringOrDefault(petTypeRawValue));
+                            {
+                                ChildCat.PetTypeEnum? petTypeValue = ChildCat.PetTypeEnumFromStringOrDefault(petTypeRawValue);
+                                if (petTypeValue == null)
+                                    throw new JsonException();
+                                petType = new Option<ChildCat.PetTypeEnum?>(petTypeValue);
+                            }
                             break;
                         default:
                             break;
@@ -198,13 +203,13 @@ namespace Org.OpenAPITools.Model
             }
 
             if (!petType.IsSet)
-                throw new ArgumentException("Property is required for class ChildCat.", nameof(petType));
+                throw new JsonException("Property is required for class ChildCat: pet_type.");
 
             if (name.IsSet && name.Value == null)
-                throw new ArgumentNullException(nameof(name), "Property is not nullable for class ChildCat.");
+                throw new JsonException("Property is not nullable for class ChildCat: name.");
 
             if (petType.IsSet && petType.Value == null)
-                throw new ArgumentNullException(nameof(petType), "Property is not nullable for class ChildCat.");
+                throw new JsonException("Property is not nullable for class ChildCat: pet_type.");
 
             return new ChildCat(name);
         }
@@ -215,7 +220,6 @@ namespace Org.OpenAPITools.Model
         /// <param name="writer"></param>
         /// <param name="childCat"></param>
         /// <param name="jsonSerializerOptions"></param>
-        /// <exception cref="NotImplementedException"></exception>
         public override void Write(Utf8JsonWriter writer, ChildCat childCat, JsonSerializerOptions jsonSerializerOptions)
         {
             writer.WriteStartObject();
@@ -230,11 +234,10 @@ namespace Org.OpenAPITools.Model
         /// <param name="writer"></param>
         /// <param name="childCat"></param>
         /// <param name="jsonSerializerOptions"></param>
-        /// <exception cref="NotImplementedException"></exception>
         public void WriteProperties(Utf8JsonWriter writer, ChildCat childCat, JsonSerializerOptions jsonSerializerOptions)
         {
             if (childCat.NameOption.IsSet && childCat.Name == null)
-                throw new ArgumentNullException(nameof(childCat.Name), "Property is required for class ChildCat.");
+                throw new JsonException("Cannot write null property ChildCat.Name to non-nullable JSON property 'name'.");
 
             if (childCat.NameOption.IsSet)
                 writer.WriteString("name", childCat.Name);

@@ -3,10 +3,10 @@ name: Samples Swift 6
 on:
   push:
     paths:
-      - samples/client/petstore/swift6/**
+      - ../../samples/client/petstore/swift6
   pull_request:
     paths:
-      - samples/client/petstore/swift6/**
+      - ../../samples/client/petstore/swift6
 
 jobs:
   build:

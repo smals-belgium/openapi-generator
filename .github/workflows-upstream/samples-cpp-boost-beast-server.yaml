@@ -3,28 +3,44 @@ name: Samples cpp boost beast server
 on:
   push:
     paths:
-      - "samples/server/petstore/cpp-boost-beast-server/**"
-      - ".github/workflows/samples-cpp-boost-beast-server.yaml"
-      - "modules/openapi-generator/src/main/resources/cpp-boost-beast-server/**"
-      - "modules/openapi-generator/src/main/resources/cpp-boost-beast-common/**"
-      - "modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/CppBoostBeastServer*.java"
-      - "modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/CppBoostBeastModelCodegen.java"
-      - "modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/CppBoostBeastClientCodegen.java"
-      - "modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/CppBoostBeastOperationFacts.java"
-      - "modules/openapi-generator/src/test/resources/3_1/cpp-boost-beast-server/**"
-      - "modules/openapi-generator/src/test/java/org/openapitools/codegen/cppboostbeastserver/**"
+      - "../../samples/server/petstore/cpp-boost-beast-server"
+      - "samples-cpp-boost-beast-server.yaml"
+      - "../../modules/openapi-generator/src/main/resources/cpp-boost-\
+        beast-server"
+      - "../../modules/openapi-generator/src/main/resources/cpp-boost-\
+        beast-common"
+      - "../../modules/openapi-generator/src/main/java/org/openapitool\
+        s/codegen/languages/CppBoostBeastServerCodegen.java"
+      - "../../modules/openapi-generator/src/main/java/org/openapitool\
+        s/codegen/languages/CppBoostBeastModelCodegen.java"
+      - "../../modules/openapi-generator/src/main/java/org/openapitool\
+        s/codegen/languages/CppBoostBeastClientCodegen.java"
+      - "../../modules/openapi-generator/src/main/java/org/openapitool\
+        s/codegen/languages/CppBoostBeastOperationFacts.java"
+      - "../../modules/openapi-generator/src/test/resources/3_1/cpp-bo\
+        ost-beast-server"
+      - "../../modules/openapi-generator/src/test/java/org/openapitool\
+        s/codegen/cppboostbeastserver"
   pull_request:
     paths:
-      - "samples/server/petstore/cpp-boost-beast-server/**"
-      - ".github/workflows/samples-cpp-boost-beast-server.yaml"
-      - "modules/openapi-generator/src/main/resources/cpp-boost-beast-server/**"
-      - "modules/openapi-generator/src/main/resources/cpp-boost-beast-common/**"
-      - "modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/CppBoostBeastServer*.java"
-      - "modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/CppBoostBeastModelCodegen.java"
-      - "modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/CppBoostBeastClientCodegen.java"
-      - "modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/CppBoostBeastOperationFacts.java"
-      - "modules/openapi-generator/src/test/resources/3_1/cpp-boost-beast-server/**"
-      - "modules/openapi-generator/src/test/java/org/openapitools/codegen/cppboostbeastserver/**"
+      - "../../samples/server/petstore/cpp-boost-beast-server"
+      - "samples-cpp-boost-beast-server.yaml"
+      - "../../modules/openapi-generator/src/main/resources/cpp-boost-\
+        beast-server"
+      - "../../modules/openapi-generator/src/main/resources/cpp-boost-\
+        beast-common"
+      - "../../modules/openapi-generator/src/main/java/org/openapitool\
+        s/codegen/languages/CppBoostBeastServerCodegen.java"
+      - "../../modules/openapi-generator/src/main/java/org/openapitool\
+        s/codegen/languages/CppBoostBeastModelCodegen.java"
+      - "../../modules/openapi-generator/src/main/java/org/openapitool\
+        s/codegen/languages/CppBoostBeastClientCodegen.java"
+      - "../../modules/openapi-generator/src/main/java/org/openapitool\
+        s/codegen/languages/CppBoostBeastOperationFacts.java"
+      - "../../modules/openapi-generator/src/test/resources/3_1/cpp-bo\
+        ost-beast-server"
+      - "../../modules/openapi-generator/src/test/java/org/openapitool\
+        s/codegen/cppboostbeastserver"
 
 jobs:
   build:

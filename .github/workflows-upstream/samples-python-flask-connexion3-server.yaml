@@ -3,12 +3,12 @@ name: Python Flask (Connexion 3) Server
 on:
   push:
     paths:
-      - samples/server/petstore/python-flask-connexion3/**
-      - .github/workflows/samples-python-flask-connexion3-server.yaml
+      - ../../samples/server/petstore/python-flask-connexion3
+      - samples-python-flask-connexion3-server.yaml
   pull_request:
     paths:
-      - samples/server/petstore/python-flask-connexion3/**
-      - .github/workflows/samples-python-flask-connexion3-server.yaml
+      - ../../samples/server/petstore/python-flask-connexion3
+      - samples-python-flask-connexion3-server.yaml
 jobs:
   build:
     name: Test Python Flask (Connexion 3) server

@@ -3,12 +3,12 @@ name: Samples C# .Net 10 Server
 on:
   push:
     paths:
-      - samples/server/petstore/aspnetcore-10.0/**
-      - samples/server/petstore/aspnetcore-10.0-*/**
+      - ../../samples/server/petstore/aspnetcore-10.0
+      - ../../samples/server/petstore/aspnetcore-10.0-pocoModels
   pull_request:
     paths:
-      - samples/server/petstore/aspnetcore-10.0/**
-      - samples/server/petstore/aspnetcore-10.0-*/**
+      - ../../samples/server/petstore/aspnetcore-10.0
+      - ../../samples/server/petstore/aspnetcore-10.0-pocoModels
 jobs:
   build:
     name: Build .Net 10 servers

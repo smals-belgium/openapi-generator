@@ -3,12 +3,12 @@ name: Samples php-laravel 8.x
 on:
   push:
     paths:
-      - samples/server/petstore/php-laravel/**
-      - samples/server/petstore/php-laravel-issue-21334/**
+      - ../../samples/server/petstore/php-laravel
+      - ../../samples/server/petstore/php-laravel-issue-21334
   pull_request:
     paths:
-      - samples/server/petstore/php-laravel/**
-      - samples/server/petstore/php-laravel-issue-21334/**
+      - ../../samples/server/petstore/php-laravel
+      - ../../samples/server/petstore/php-laravel-issue-21334
 jobs:
   build:
     name: Build 

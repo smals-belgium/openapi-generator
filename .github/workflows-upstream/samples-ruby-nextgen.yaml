@@ -3,12 +3,12 @@ name: Samples ruby-nextgen
 on:
   push:
     paths:
-      - 'samples/client/petstore/ruby-nextgen/**'
-      - 'samples/client/others/ruby-nextgen-qdrant/**'
+      - '../../samples/client/petstore/ruby-nextgen'
+      - '../../samples/client/others/ruby-nextgen-qdrant'
   pull_request:
     paths:
-      - 'samples/client/petstore/ruby-nextgen/**'
-      - 'samples/client/others/ruby-nextgen-qdrant/**'
+      - '../../samples/client/petstore/ruby-nextgen'
+      - '../../samples/client/others/ruby-nextgen-qdrant'
 
 jobs:
   build:

@@ -1453,6 +1453,11 @@ public class SpringCodegen extends AbstractJavaCodegen
             model.imports.add("Arrays");
         }
 
+        if ("set".equals(property.containerType)) {
+            model.imports.remove("JsonDeserialize");
+            property.vendorExtensions.remove("x-setter-extra-annotation", "@JsonDeserialize(as = LinkedHashSet.class)");
+        }
+
         // Optional + non-nullable: emit @JsonSetter(nulls = ...) so an explicit null in the payload does not
         // silently overwrite the field's default. Also honors a per-property x-jackson-json-setter-nulls override
         // and the optionalNonNullPropertyJsonSetterNulls option; see JsonAnnotationPolicyUtils#resolveJsonSetterNulls.

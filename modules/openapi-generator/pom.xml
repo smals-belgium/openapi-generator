@@ -212,6 +212,7 @@
                                     <include>org.openapitools.codegen.java.jaxrs.**</include>
                                     <include>org.openapitools.codegen.java.assertions.**</include>
                                     <include>org.openapitools.codegen.java.spring.**</include>
+                                    <include>org.openapitools.codegen.smals.**</include>
                                     <include>org.openapitools.codegen.*</include>
                                 </includes>
                             </configuration>
